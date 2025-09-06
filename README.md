@@ -1,6 +1,10 @@
 # RuneScape Classic Recreation
 
-A modern browser-based recreation of the classic RuneScape game, built with TypeScript, Three.js, React, and Vite.
+# ScapeRune - RuneScape Classic Recreation
+
+🚀 **Live Repository**: https://github.com/DandanITman/ScapeRune
+
+A modern recreation of RuneScape Classic built with TypeScript, React, Three.js, and Vite. This project features authentic RSC combat mechanics, continuous two-way combat, and a complete 3D world with isometric camera.
 
 ## 🎮 Project Overview
 
