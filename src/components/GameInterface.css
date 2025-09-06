@@ -1,0 +1,188 @@
+.game-interface {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1000;
+  font-family: 'Courier New', monospace;
+  color: white;
+}
+
+.menu-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 5px;
+  pointer-events: all;
+}
+
+.menu-button {
+  background: linear-gradient(135deg, #8b4513, #a0522d);
+  border: 2px solid #654321;
+  color: white;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.1s ease;
+}
+
+.menu-button:hover {
+  background: linear-gradient(135deg, #a0522d, #b8860b);
+  transform: translateY(-1px);
+}
+
+.menu-button:active {
+  transform: translateY(0px);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.menu-button.active {
+  background: linear-gradient(135deg, #daa520, #ffd700);
+  color: #000;
+  border-color: #b8860b;
+}
+
+.player-info {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  border: 2px solid #8b4513;
+  border-radius: 5px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+  pointer-events: all;
+}
+
+.player-name {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #ffd700;
+}
+
+.location,
+.combat-level,
+.hitpoints {
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+.controls-help {
+  position: absolute;
+  bottom: 80px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px;
+  border: 1px solid #8b4513;
+  border-radius: 3px;
+  font-size: 11px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+}
+
+.chat-area {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  height: 60px;
+  pointer-events: all;
+}
+
+.chat-messages {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #8b4513;
+  border-radius: 5px 5px 0 0;
+  height: 40px;
+  padding: 5px;
+  overflow-y: auto;
+  font-size: 11px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+}
+
+.chat-message {
+  margin-bottom: 2px;
+  color: #ffffff;
+}
+
+.chat-input {
+  width: 100%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid #8b4513;
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+  color: white;
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 11px;
+  outline: none;
+}
+
+.chat-input::placeholder {
+  color: #aaa;
+}
+
+.game-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #2c3e50, #3498db);
+  color: white;
+  font-family: 'Courier New', monospace;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.game-loading h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #ffd700;
+}
+
+.game-loading p {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.game-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #8b0000, #dc143c);
+  color: white;
+  font-family: 'Courier New', monospace;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  text-align: center;
+}
+
+.game-error h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #ffd700;
+}
+
+.game-error p {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.game-error ul {
+  text-align: left;
+  font-size: 14px;
+}
+
+.game-error li {
+  margin-bottom: 5px;
+}

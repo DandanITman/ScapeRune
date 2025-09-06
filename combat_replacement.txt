@@ -1,0 +1,113 @@
+        // Start continuous combat after reaching NPC
+        setTimeout(() => {
+          const playerStats = useGameStore.getState().getCombatStats();
+          const combatStyle = useGameStore.getState().combatStyle;
+          
+          // Check if already in combat
+          if (engine.isInCombat()) {
+            engine.stopCombat();
+          }
+          
+          // Start continuous combat
+          engine.startCombat(clickedNPC, playerStats, combatStyle, (event: any) => {
+            const { type, result, npc } = event;
+            
+            if (type === 'player_attack') {
+              const combatResult = result;
+              const npcName = npc.userData.name || 'NPC';
+              
+              if (combatResult.success) {
+                // Add experience gained
+                const xp = combatResult.xp;
+                
+                // Apply XP to game store
+                if (xp.attack > 0) addExperience('attack', xp.attack);
+                if (xp.strength > 0) addExperience('strength', xp.strength);
+                if (xp.defense > 0) addExperience('defense', xp.defense);
+                if (xp.hits > 0) addExperience('hits', xp.hits);
+                
+                // Get screen position for floating text
+                const npcScreenPos = getScreenPosition(npc.position);
+                
+                // Show damage number above NPC
+                addFloatingText(`${combatResult.damage}`, 'damage', npcScreenPos.x, npcScreenPos.y - 20);
+                
+                // Show XP gains with slight delay and offset
+                let xpMessages: string[] = [];
+                if (xp.attack > 0) xpMessages.push(`+${xp.attack} Att`);
+                if (xp.strength > 0) xpMessages.push(`+${xp.strength} Str`);
+                if (xp.defense > 0) xpMessages.push(`+${xp.defense} Def`);
+                if (xp.hits > 0) xpMessages.push(`+${xp.hits} HP`);
+                
+                xpMessages.forEach((msg, index) => {
+                  setTimeout(() => {
+                    addFloatingText(msg, 'xp', npcScreenPos.x + (index * 30 - 45), npcScreenPos.y - 40);
+                  }, 300 + index * 100);
+                });
+                
+                // Update health bar for NPC
+                const npcStats = npc.userData.stats;
+                updateHealthBar(
+                  `npc_${npc.id}`, 
+                  npcName, 
+                  npcStats.currentHits || 0, 
+                  npcStats.hits || 10, 
+                  npcScreenPos.x, 
+                  npcScreenPos.y
+                );
+                
+                if (combatResult.npcDead) {
+                  // Show death message
+                  setTimeout(() => {
+                    addFloatingText(`${npcName} defeated!`, 'xp', npcScreenPos.x, npcScreenPos.y + 20);
+                  }, 500);
+                  
+                  // Remove health bar when NPC dies
+                  setTimeout(() => {
+                    removeHealthBar(`npc_${npc.id}`);
+                  }, 2000);
+                }
+              } else {
+                // Get screen position for floating text
+                const npcScreenPos = getScreenPosition(npc.position);
+                // Show miss text
+                addFloatingText('Miss!', 'miss', npcScreenPos.x, npcScreenPos.y - 20);
+              }
+            } else if (type === 'npc_attack') {
+              // Handle NPC attacking player
+              const attackResult = result;
+              const playerPos = engine.getPlayerPosition();
+              const playerScreenPos = getScreenPosition(playerPos);
+              
+              if (attackResult.success) {
+                // Show damage taken by player
+                addFloatingText(`${attackResult.damage}`, 'damage', playerScreenPos.x, playerScreenPos.y - 20);
+                
+                // Update player health bar
+                updateHealthBar(
+                  'player',
+                  'You',
+                  playerStats.currentHits,
+                  playerStats.hits,
+                  playerScreenPos.x,
+                  playerScreenPos.y
+                );
+                
+                if (attackResult.playerDead) {
+                  // Show death message
+                  setTimeout(() => {
+                    addFloatingText('You have died!', 'damage', playerScreenPos.x, playerScreenPos.y + 20);
+                  }, 500);
+                  
+                  // Remove player health bar
+                  setTimeout(() => {
+                    removeHealthBar('player');
+                  }, 3000);
+                }
+              } else {
+                // NPC missed
+                addFloatingText('Miss!', 'miss', playerScreenPos.x, playerScreenPos.y - 20);
+              }
+            }
+          });
+        }, 1000);
