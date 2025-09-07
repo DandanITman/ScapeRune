@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { CombatSystem } from '../systems/CombatSystem';
 import type { Combatant, CombatStyle } from '../systems/CombatSystem';
+import { WoodcuttingSystem } from '../systems/WoodcuttingSystem';
+import { MiningSystem } from '../systems/MiningSystem';
+import { FishingSystem } from '../systems/FishingSystem';
+import { SmithingSystem } from '../systems/SmithingSystem';
+import { useGameStore } from '../store/gameStore';
+import type { Equipment } from '../types/inventory';
 
 export class GameEngine {
   private scene: THREE.Scene;
@@ -17,8 +23,12 @@ export class GameEngine {
   private npcs: THREE.Mesh[] = [];
   private trees: THREE.Group[] = [];
   
-  // Combat system
+  // Skill systems
   private combatSystem = new CombatSystem();
+  private woodcuttingSystem = new WoodcuttingSystem();
+  private miningSystem = new MiningSystem();
+  private fishingSystem = new FishingSystem();
+  private smithingSystem = new SmithingSystem();
   private playerCombatStyle: CombatStyle = 'controlled';
   
   // Combat state
@@ -98,6 +108,10 @@ export class GameEngine {
     this.createNPCs();
     console.log('NPCs created');
     
+    console.log('Creating skill resources...');
+    this.createSkillResources();
+    console.log('Skill resources created');
+    
     // Position camera in isometric view
     console.log('Setting up camera...');
     this.camera.position.set(10, 10, 10); // Further back for better view
@@ -146,54 +160,12 @@ export class GameEngine {
       this.scene.add(this.terrain);
       console.log('Grass terrain plane created successfully');
 
-      // Add some trees back
-      this.createTrees();
+      // Trees will be created by createSkillResources()
     } catch (error) {
       console.error('Failed to create terrain:', error);
       throw error;
     }
   }
-
-  private createTrees(): void {
-    try {
-      for (let i = 0; i < 5; i++) {
-        const tree = this.createTree();
-        tree.position.x = (Math.random() - 0.5) * 40;
-        tree.position.z = (Math.random() - 0.5) * 40;
-        tree.userData = { type: 'tree', name: 'Tree' };
-        this.scene.add(tree);
-        this.trees.push(tree);
-      }
-      console.log('Trees created successfully');
-    } catch (error) {
-      console.error('Failed to create trees:', error);
-      // Don't throw, just continue without trees
-    }
-  }
-
-  private createTree(): THREE.Group {
-    const tree = new THREE.Group();
-
-    // Tree trunk
-    const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.8, 4);
-    const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown
-    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-    trunk.position.y = 2;
-    trunk.castShadow = true;
-    tree.add(trunk);
-
-    // Tree leaves
-    const leavesGeometry = new THREE.SphereGeometry(3);
-    const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 }); // Forest green
-    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-    leaves.position.y = 5;
-    leaves.castShadow = true;
-    tree.add(leaves);
-
-    return tree;
-  }
-
-
 
   private createPlayer(): void {
     // Create a proper player character (cylinder body + sphere head)
@@ -255,6 +227,150 @@ export class GameEngine {
     return npc;
   }
 
+  private createSkillResources(): void {
+    // Create trees for woodcutting
+    this.createTrees();
+    
+    // Create rocks for mining
+    this.createRocks();
+    
+    // Create fishing spots
+    this.createFishingSpots();
+    
+    // Create smithing structures
+    this.createSmithingStructures();
+  }
+
+  private createTrees(): void {
+    const treeData = [
+      { type: 'normal', position: { x: -10, z: -10 } },
+      { type: 'normal', position: { x: -12, z: -8 } },
+      { type: 'oak', position: { x: 8, z: -12 } },
+      { type: 'willow', position: { x: 15, z: 5 } },
+      { type: 'maple', position: { x: -15, z: 8 } },
+      { type: 'yew', position: { x: 20, z: -5 } },
+      { type: 'magic', position: { x: -18, z: 15 } }
+    ];
+
+    treeData.forEach(data => {
+      const position = new THREE.Vector3(data.position.x, 0, data.position.z);
+      const treeMesh = this.woodcuttingSystem.createTreeMesh(data.type);
+      treeMesh.position.copy(position);
+      this.scene.add(treeMesh);
+      this.trees.push(treeMesh);
+
+      // Add tree to woodcutting system
+      this.woodcuttingSystem.addTree({
+        type: data.type as 'normal' | 'oak' | 'willow' | 'maple' | 'yew' | 'magic',
+        position,
+        mesh: treeMesh,
+        respawnTime: 0,
+        isChopped: false
+      });
+    });
+  }
+
+  private createRocks(): void {
+    const rockData = [
+      { type: 'clay', position: { x: 12, z: 8 } },
+      { type: 'copper', position: { x: 10, z: 10 } },
+      { type: 'tin', position: { x: 8, z: 12 } },
+      { type: 'iron', position: { x: -5, z: 12 } },
+      { type: 'coal', position: { x: -8, z: 15 } },
+      { type: 'gold', position: { x: 18, z: 10 } },
+      { type: 'mithril', position: { x: -20, z: -8 } },
+      { type: 'adamant', position: { x: 25, z: -10 } },
+      { type: 'runite', position: { x: -25, z: 20 } }
+    ];
+
+    rockData.forEach(data => {
+      const position = new THREE.Vector3(data.position.x, 0, data.position.z);
+      const rockMesh = this.miningSystem.createRockMesh(data.type);
+      rockMesh.position.copy(position);
+      this.scene.add(rockMesh);
+
+      // Add rock to mining system
+      this.miningSystem.addRock({
+        type: data.type as 'clay' | 'copper' | 'tin' | 'iron' | 'silver' | 'coal' | 'gold' | 'gem' | 'mithril' | 'adamant' | 'runite',
+        position,
+        mesh: rockMesh,
+        respawnTime: 0,
+        isMined: false
+      });
+    });
+  }
+
+  private createFishingSpots(): void {
+    const fishingData = [
+      { 
+        type: 'net_bait', 
+        position: { x: 5, z: 20 },
+        fishTypes: ['shrimp', 'sardine', 'herring', 'anchovies'],
+        equipment: ['net', 'rod']
+      },
+      { 
+        type: 'lure_bait', 
+        position: { x: -10, z: 25 },
+        fishTypes: ['trout', 'pike', 'salmon'],
+        equipment: ['fly_rod', 'rod']
+      },
+      { 
+        type: 'harpoon_cage', 
+        position: { x: 15, z: 25 },
+        fishTypes: ['tuna', 'lobster', 'swordfish'],
+        equipment: ['harpoon', 'lobster_pot']
+      },
+      { 
+        type: 'big_net_harpoon', 
+        position: { x: 0, z: 30 },
+        fishTypes: ['mackerel', 'cod', 'bass', 'shark'],
+        equipment: ['big_net', 'harpoon']
+      }
+    ];
+
+    fishingData.forEach(data => {
+      const position = new THREE.Vector3(data.position.x, 0, data.position.z);
+      const spotMesh = this.fishingSystem.createFishingSpotMesh(data.type);
+      spotMesh.position.copy(position);
+      this.scene.add(spotMesh);
+
+      // Add fishing spot to fishing system
+      this.fishingSystem.addFishingSpot({
+        type: data.type as 'net_bait' | 'lure_bait' | 'harpoon_cage' | 'cage_harpoon' | 'big_net_harpoon' | 'special',
+        position,
+        mesh: spotMesh,
+        fishTypes: data.fishTypes,
+        equipment: data.equipment
+      });
+    });
+  }
+
+  private createSmithingStructures(): void {
+    // Create furnaces for smelting
+    const furnacePositions = [
+      { x: -5, z: 10 },
+      { x: 5, z: 10 }
+    ];
+
+    furnacePositions.forEach(pos => {
+      const position = new THREE.Vector3(pos.x, 0, pos.z);
+      this.smithingSystem.addFurnace(this.scene, position);
+    });
+
+    // Create anvils for smithing
+    const anvilPositions = [
+      { x: -3, z: 12 },
+      { x: 3, z: 12 }
+    ];
+
+    anvilPositions.forEach(pos => {
+      const position = new THREE.Vector3(pos.x, 0, pos.z);
+      const anvil = this.smithingSystem.createAnvilMesh();
+      anvil.position.copy(position);
+      this.scene.add(anvil);
+    });
+  }
+
   private updateCamera(): void {
     if (this.player) {
       this.cameraTarget.copy(this.player.position);
@@ -312,6 +428,16 @@ export class GameEngine {
         this.player.position.add(direction.multiplyScalar(moveDistance));
       }
     }
+  }
+
+  private updateSkillResources(): void {
+    // Update tree respawns
+    this.woodcuttingSystem.updateTrees();
+    
+    // Update rock respawns
+    this.miningSystem.updateRocks();
+    
+    // Note: Fishing spots don't need respawning as they're always available
   }
 
   public getGroundPosition(mouseX: number, mouseY: number, containerWidth: number, containerHeight: number): THREE.Vector3 | null {
@@ -375,6 +501,84 @@ export class GameEngine {
     return null;
   }
 
+  public getClickedRock(mouseX: number, mouseY: number, containerWidth: number, containerHeight: number): THREE.Group | null {
+    // Convert mouse coordinates to normalized device coordinates
+    const mouse = new THREE.Vector2();
+    mouse.x = (mouseX / containerWidth) * 2 - 1;
+    mouse.y = -(mouseY / containerHeight) * 2 + 1;
+
+    // Create raycaster
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    // Check intersection with rocks
+    const rocks = this.miningSystem.getRocks();
+    for (const rock of rocks) {
+      if (rock.mesh) {
+        const intersects = raycaster.intersectObject(rock.mesh, true); // recursive for rock children
+        if (intersects.length > 0) {
+          return rock.mesh;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  public getClickedFishingSpot(mouseX: number, mouseY: number, containerWidth: number, containerHeight: number): THREE.Group | null {
+    // Convert mouse coordinates to normalized device coordinates
+    const mouse = new THREE.Vector2();
+    mouse.x = (mouseX / containerWidth) * 2 - 1;
+    mouse.y = -(mouseY / containerHeight) * 2 + 1;
+
+    // Create raycaster
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    // Check intersection with fishing spots
+    const fishingSpots = this.fishingSystem.getFishingSpots();
+    for (const spot of fishingSpots) {
+      if (spot.mesh) {
+        const intersects = raycaster.intersectObject(spot.mesh, true); // recursive for spot children
+        if (intersects.length > 0) {
+          return spot.mesh;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Calculate equipment bonuses from currently equipped items
+   */
+  private calculateEquipmentBonuses(equipment: Equipment): { weaponAim: number, weaponPower: number, armour: number } {
+    let weaponAim = 0;
+    let weaponPower = 0;
+    let armour = 0;
+
+    // Calculate bonuses from each equipped item
+    Object.values(equipment).forEach(item => {
+      if (item) {
+        // Weapon bonuses affect both aim and power
+        if (item.attackBonus) {
+          weaponAim += item.attackBonus;
+          weaponPower += item.attackBonus;
+        }
+        // Strength bonus affects weapon power
+        if (item.strengthBonus) {
+          weaponPower += item.strengthBonus;
+        }
+        // Defense bonus affects armour
+        if (item.defenseBonus) {
+          armour += item.defenseBonus;
+        }
+      }
+    });
+
+    return { weaponAim, weaponPower, armour };
+  }
+
   public attackNPC(npc: THREE.Mesh, playerStats?: any, combatStyle?: string): { success: boolean, damage: number, xp: any, npcDead: boolean } {
     if (!this.player) return { success: false, damage: 0, xp: {}, npcDead: false };
 
@@ -390,10 +594,14 @@ export class GameEngine {
     // Use provided combat style or default
     const style = combatStyle || 'accurate';
 
+    // Get current equipment and calculate bonuses
+    const currentEquipment = useGameStore.getState().player.equipment;
+    const equipmentBonuses = this.calculateEquipmentBonuses(currentEquipment);
+
     // Create combatant objects
     const playerCombatant: Combatant = {
       stats: stats,
-      equipment: { weaponAim: 0, weaponPower: 0, armour: 0 }, // Default equipment for now
+      equipment: equipmentBonuses,
       style: style as 'accurate' | 'aggressive' | 'defensive' | 'controlled',
       isPlayer: true,
       position: this.player.position,
@@ -532,9 +740,13 @@ export class GameEngine {
       name: npc.userData.name
     };
 
+    // Get current equipment and calculate bonuses
+    const currentEquipment = useGameStore.getState().player.equipment;
+    const equipmentBonuses = this.calculateEquipmentBonuses(currentEquipment);
+
     const playerCombatant: Combatant = {
       stats: playerStats,
-      equipment: { weaponAim: 0, weaponPower: 0, armour: 0 },
+      equipment: equipmentBonuses,
       style: 'defensive', // Player is defending
       isPlayer: true,
       position: this.player.position,
@@ -598,6 +810,7 @@ export class GameEngine {
       // Update game logic
       this.updateMovement(deltaTime);
       this.updateCamera();
+      this.updateSkillResources();
 
       // Render the scene
       this.renderer.render(this.scene, this.camera);
@@ -635,8 +848,25 @@ export class GameEngine {
     return this.camera;
   }
 
+  public getScene(): THREE.Scene {
+    return this.scene;
+  }
+
   public getRenderer(): THREE.WebGLRenderer {
     return this.renderer;
+  }
+
+  // Skill system getters
+  public getWoodcuttingSystem(): WoodcuttingSystem {
+    return this.woodcuttingSystem;
+  }
+
+  public getMiningSystem(): MiningSystem {
+    return this.miningSystem;
+  }
+
+  public getFishingSystem(): FishingSystem {
+    return this.fishingSystem;
   }
 
   public dispose(): void {

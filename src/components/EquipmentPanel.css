@@ -1,0 +1,109 @@
+/* Equipment Panel Specific Styles */
+
+.equipment-panel {
+  width: 350px;
+}
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 8px;
+  padding: 10px;
+}
+
+/* Equipment slot specific positioning */
+.helmet-slot { grid-column: 2; grid-row: 1; }
+.cape-slot { grid-column: 1; grid-row: 1; }
+.amulet-slot { grid-column: 3; grid-row: 1; }
+.weapon-slot { grid-column: 1; grid-row: 2; }
+.body-slot { grid-column: 2; grid-row: 2; }
+.shield-slot { grid-column: 3; grid-row: 2; }
+.legs-slot { grid-column: 2; grid-row: 3; }
+.boots-slot { grid-column: 2; grid-row: 4; }
+.gloves-slot { grid-column: 1; grid-row: 3; }
+.ring-slot { grid-column: 3; grid-row: 3; }
+
+.equipment-slot {
+  width: 70px;
+  height: 70px;
+  border: 2px solid #8b4513;
+  border-radius: 4px;
+  background: rgba(139, 69, 19, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.equipment-slot:hover {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.equipped-item {
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid #90EE90;
+}
+
+.slot-label {
+  font-size: 8px;
+  color: #8b8b8b;
+  text-align: center;
+  text-transform: capitalize;
+  line-height: 1.1;
+  word-wrap: break-word;
+  max-width: 60px;
+}
+
+/* Tooltip Styles */
+.item-tooltip {
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #8b4513;
+  border-radius: 6px;
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: white;
+  max-width: 200px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.6);
+}
+
+.tooltip-header {
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.tooltip-description {
+  color: #e0e0e0;
+  margin-bottom: 6px;
+  font-style: italic;
+}
+
+.tooltip-stats {
+  border-top: 1px solid #654321;
+  padding-top: 4px;
+  margin-bottom: 4px;
+}
+
+.tooltip-stat {
+  color: #90EE90;
+  margin: 2px 0;
+}
+
+.tooltip-requirements {
+  border-top: 1px solid #654321;
+  padding-top: 4px;
+  color: #ffb6c1;
+}
+
+.tooltip-requirement {
+  margin: 1px 0;
+  font-size: 10px;
+}

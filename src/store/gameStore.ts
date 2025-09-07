@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import type { InventoryItem, InventorySlot, Equipment } from '../types/inventory';
+import { ITEM_DEFINITIONS, ItemType } from '../types/inventory';
+import { SmithingSystem } from '../systems/SmithingSystem';
 
 // Player stats interface
 export interface PlayerStats {
@@ -54,6 +57,8 @@ export interface Player {
   hitpoints: number;
   maxHitpoints: number;
   fatigue: number;
+  inventory: InventorySlot[];
+  equipment: Equipment;
 }
 
 // Game state interface
@@ -78,6 +83,22 @@ interface GameStore extends GameState {
   getCombatStats: () => { attack: number; defense: number; strength: number; hits: number; currentHits: number };
   setCombatStyle: (style: 'accurate' | 'aggressive' | 'defensive' | 'controlled') => void;
   updateCurrentHits: (damage: number) => void;
+  
+  // Inventory actions
+  addItemToInventory: (itemId: string, quantity?: number) => boolean;
+  removeItemFromInventory: (slotIndex: number, quantity?: number) => void;
+  useItem: (slotIndex: number) => void;
+  equipItem: (slotIndex: number) => void;
+  unequipItem: (equipSlot: string) => void;
+  getInventoryItem: (slotIndex: number) => InventoryItem | null;
+  getEquippedItem: (equipSlot: string) => InventoryItem | null;
+  hasInventorySpace: () => boolean;
+  findItemInInventory: (itemId: string) => number | null;
+  getEquipmentBonuses: () => { attackBonus: number; strengthBonus: number; defenseBonus: number };
+  
+  // Smithing actions
+  smeltOre: (recipeId: string) => { success: boolean; message: string; xp?: number };
+  smithItem: (recipeId: string) => { success: boolean; message: string; xp?: number };
 }
 
 // Initial player state
@@ -128,6 +149,23 @@ const initialPlayer: Player = {
   hitpoints: 10,
   maxHitpoints: 10,
   fatigue: 0,
+  inventory: Array.from({ length: 30 }, (_, index) => ({
+    slotIndex: index,
+    item: index === 0 ? { ...ITEM_DEFINITIONS.bread, quantity: 5 } : 
+          index === 1 ? { ...ITEM_DEFINITIONS.bronze_sword, quantity: 1 } : 
+          index === 2 ? { ...ITEM_DEFINITIONS.bronze_helmet, quantity: 1 } :
+          index === 3 ? { ...ITEM_DEFINITIONS.bronze_chainmail, quantity: 1 } :
+          index === 4 ? { ...ITEM_DEFINITIONS.bronze_platelegs, quantity: 1 } :
+          index === 5 ? { ...ITEM_DEFINITIONS.bronze_axe, quantity: 1 } :
+          index === 6 ? { ...ITEM_DEFINITIONS.bronze_pickaxe, quantity: 1 } :
+          index === 7 ? { ...ITEM_DEFINITIONS.small_fishing_net, quantity: 1 } :
+          index === 8 ? { ...ITEM_DEFINITIONS.copper_ore, quantity: 10 } :
+          index === 9 ? { ...ITEM_DEFINITIONS.tin_ore, quantity: 10 } :
+          index === 10 ? { ...ITEM_DEFINITIONS.iron_ore, quantity: 5 } :
+          index === 11 ? { ...ITEM_DEFINITIONS.coal, quantity: 10 } :
+          index === 12 ? { ...ITEM_DEFINITIONS.bronze_bar, quantity: 3 } : null
+  })),
+  equipment: {}
 };
 
 // Experience table for calculating levels
@@ -245,5 +283,281 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ...state.player,
       hitpoints: Math.max(0, (state.player.hitpoints || state.player.stats.hits) - damage)
     }
-  }))
+  })),
+
+  // Inventory actions
+  addItemToInventory: (itemId, quantity = 1) => {
+    const state = get();
+    const itemDef = ITEM_DEFINITIONS[itemId];
+    if (!itemDef) return false;
+
+    const newInventory = [...state.player.inventory];
+    
+    // Check if item is stackable and already exists
+    if (itemDef.stackable) {
+      const existingSlot = newInventory.find(slot => slot.item?.id === itemId);
+      if (existingSlot && existingSlot.item) {
+        existingSlot.item.quantity += quantity;
+        set((state) => ({
+          player: { ...state.player, inventory: newInventory }
+        }));
+        return true;
+      }
+    }
+
+    // Find empty slot
+    const emptySlot = newInventory.find(slot => !slot.item);
+    if (!emptySlot) return false; // Inventory full
+
+    emptySlot.item = { ...itemDef, quantity };
+    set((state) => ({
+      player: { ...state.player, inventory: newInventory }
+    }));
+    return true;
+  },
+
+  removeItemFromInventory: (slotIndex, quantity = 1) => {
+    const state = get();
+    const newInventory = [...state.player.inventory];
+    const slot = newInventory[slotIndex];
+    
+    if (!slot.item) return;
+
+    if (slot.item.quantity <= quantity) {
+      slot.item = null;
+    } else {
+      slot.item.quantity -= quantity;
+    }
+
+    set((state) => ({
+      player: { ...state.player, inventory: newInventory }
+    }));
+  },
+
+  useItem: (slotIndex) => {
+    const state = get();
+    const item = state.player.inventory[slotIndex]?.item;
+    if (!item) return;
+
+    // Handle food items
+    if (item.type === ItemType.FOOD && item.healAmount) {
+      const maxHeal = state.player.maxHitpoints - state.player.hitpoints;
+      if (maxHeal > 0) {
+        const healAmount = Math.min(item.healAmount, maxHeal);
+        
+        set((state) => ({
+          player: {
+            ...state.player,
+            hitpoints: Math.min(state.player.maxHitpoints, state.player.hitpoints + healAmount)
+          }
+        }));
+
+        // Remove one item
+        get().removeItemFromInventory(slotIndex, 1);
+        console.log(`Ate ${item.name} and healed ${healAmount} HP`);
+      } else {
+        console.log("You're already at full health!");
+      }
+    }
+    // Add more item use cases here (potions, etc.)
+  },
+
+  equipItem: (slotIndex) => {
+    const state = get();
+    const item = state.player.inventory[slotIndex]?.item;
+    if (!item || !item.equipSlot) return;
+
+    // Check requirements
+    if (item.requirements) {
+      for (const [stat, requiredLevel] of Object.entries(item.requirements)) {
+        if (state.player.stats[stat as keyof PlayerStats] < requiredLevel) {
+          console.log(`You need ${requiredLevel} ${stat} to equip this item.`);
+          return;
+        }
+      }
+    }
+
+    const newEquipment = { ...state.player.equipment };
+    const newInventory = [...state.player.inventory];
+    
+    // If there's already an item equipped in this slot, unequip it first
+    if (newEquipment[item.equipSlot as keyof Equipment]) {
+      get().unequipItem(item.equipSlot);
+    }
+
+    // Equip the new item
+    newEquipment[item.equipSlot as keyof Equipment] = item;
+    newInventory[slotIndex].item = null;
+
+    set((state) => ({
+      player: {
+        ...state.player,
+        equipment: newEquipment,
+        inventory: newInventory
+      }
+    }));
+    
+    console.log(`Equipped ${item.name}`);
+  },
+
+  unequipItem: (equipSlot) => {
+    const state = get();
+    const equippedItem = state.player.equipment[equipSlot as keyof Equipment];
+    if (!equippedItem) return;
+
+    // Find empty inventory slot
+    if (!get().hasInventorySpace()) {
+      console.log("Your inventory is full!");
+      return;
+    }
+
+    const newEquipment = { ...state.player.equipment };
+    delete newEquipment[equipSlot as keyof Equipment];
+
+    // Add to inventory
+    get().addItemToInventory(equippedItem.id, equippedItem.quantity);
+
+    set((state) => ({
+      player: {
+        ...state.player,
+        equipment: newEquipment
+      }
+    }));
+    
+    console.log(`Unequipped ${equippedItem.name}`);
+  },
+
+  getInventoryItem: (slotIndex) => {
+    const state = get();
+    return state.player.inventory[slotIndex]?.item || null;
+  },
+
+  getEquippedItem: (equipSlot) => {
+    const state = get();
+    return state.player.equipment[equipSlot as keyof Equipment] || null;
+  },
+
+  hasInventorySpace: () => {
+    const state = get();
+    return state.player.inventory.some(slot => !slot.item);
+  },
+
+  findItemInInventory: (itemId) => {
+    const state = get();
+    const slotIndex = state.player.inventory.findIndex(slot => slot.item?.id === itemId);
+    return slotIndex === -1 ? null : slotIndex;
+  },
+
+  getEquipmentBonuses: () => {
+    const state = get();
+    let attackBonus = 0;
+    let strengthBonus = 0;
+    let defenseBonus = 0;
+
+    // Calculate bonuses from each equipped item
+    Object.values(state.player.equipment).forEach(item => {
+      if (item) {
+        if (item.attackBonus) attackBonus += item.attackBonus;
+        if (item.strengthBonus) strengthBonus += item.strengthBonus;
+        if (item.defenseBonus) defenseBonus += item.defenseBonus;
+      }
+    });
+
+    return { attackBonus, strengthBonus, defenseBonus };
+  },
+
+  // Smithing actions
+  smeltOre: (recipeId) => {
+    const state = get();
+    const smithingSystem = new SmithingSystem();
+    const recipe = smithingSystem.getSmeltingRecipe(recipeId);
+    
+    if (!recipe) {
+      return { success: false, message: 'Recipe not found.' };
+    }
+    
+    // Check smithing level
+    if (state.player.stats.smithing < recipe.requiredLevel) {
+      return { success: false, message: `You need ${recipe.requiredLevel} Smithing to smelt this.` };
+    }
+    
+    // Check if player has required materials
+    if (!smithingSystem.canSmelt(recipe, state.player.inventory)) {
+      return { success: false, message: 'You do not have the required materials.' };
+    }
+    
+    // Check if player has inventory space
+    if (!get().hasInventorySpace()) {
+      return { success: false, message: 'Your inventory is full!' };
+    }
+    
+    // Remove materials from inventory
+    for (const material of recipe.materials) {
+      const slotIndex = state.player.inventory.findIndex(slot => 
+        slot.item && slot.item.id === material.itemId
+      );
+      if (slotIndex !== -1) {
+        get().removeItemFromInventory(slotIndex, material.quantity);
+      }
+    }
+    
+    // Add result to inventory
+    get().addItemToInventory(recipe.result.itemId, recipe.result.quantity);
+    
+    // Add experience
+    get().addExperience('smithing', recipe.experience);
+    
+    return { 
+      success: true, 
+      message: `You successfully smelt ${recipe.name}.`,
+      xp: recipe.experience
+    };
+  },
+
+  smithItem: (recipeId) => {
+    const state = get();
+    const smithingSystem = new SmithingSystem();
+    const recipe = smithingSystem.getSmithingRecipe(recipeId);
+    
+    if (!recipe) {
+      return { success: false, message: 'Recipe not found.' };
+    }
+    
+    // Check smithing level
+    if (state.player.stats.smithing < recipe.requiredLevel) {
+      return { success: false, message: `You need ${recipe.requiredLevel} Smithing to smith this.` };
+    }
+    
+    // Check if player has required bars
+    if (!smithingSystem.canSmith(recipe, state.player.inventory)) {
+      return { success: false, message: 'You do not have the required bars.' };
+    }
+    
+    // Check if player has inventory space
+    if (!get().hasInventorySpace()) {
+      return { success: false, message: 'Your inventory is full!' };
+    }
+    
+    // Remove bars from inventory
+    for (const bar of recipe.bars) {
+      const slotIndex = state.player.inventory.findIndex(slot => 
+        slot.item && slot.item.id === bar.itemId
+      );
+      if (slotIndex !== -1) {
+        get().removeItemFromInventory(slotIndex, bar.quantity);
+      }
+    }
+    
+    // Add result to inventory
+    get().addItemToInventory(recipe.result.itemId, recipe.result.quantity);
+    
+    // Add experience
+    get().addExperience('smithing', recipe.experience);
+    
+    return { 
+      success: true, 
+      message: `You successfully smith ${recipe.name}.`,
+      xp: recipe.experience
+    };
+  }
 }));

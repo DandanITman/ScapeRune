@@ -1,0 +1,155 @@
+/* Smithing Panel Specific Styles */
+
+.smithing-panel {
+  width: 450px;
+  max-height: 600px;
+}
+
+.smithing-tabs {
+  display: flex;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #8b4513;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(139, 69, 19, 0.3);
+  border: 1px solid #8b4513;
+  color: white;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-button:hover {
+  background: rgba(139, 69, 19, 0.5);
+}
+
+.tab-button.active {
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+  border-color: #ffd700;
+}
+
+.smithing-message {
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid #90EE90;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  text-align: center;
+  color: #90EE90;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.smithing-content {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.smithing-content h4 {
+  margin: 0 0 10px 0;
+  color: #ffd700;
+  text-align: center;
+  font-size: 14px;
+}
+
+.recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recipe-item {
+  background: rgba(139, 69, 19, 0.2);
+  border: 1px solid #654321;
+  border-radius: 4px;
+  padding: 10px;
+  transition: all 0.2s;
+}
+
+.recipe-item.available {
+  border-color: #90EE90;
+  background: rgba(0, 255, 0, 0.05);
+}
+
+.recipe-item.unavailable {
+  border-color: #8b4513;
+  background: rgba(139, 69, 19, 0.1);
+  opacity: 0.6;
+}
+
+.recipe-item:hover.available {
+  background: rgba(0, 255, 0, 0.1);
+  border-color: #ffd700;
+}
+
+.recipe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.recipe-name {
+  font-weight: bold;
+  color: #ffd700;
+  font-size: 13px;
+}
+
+.recipe-level {
+  font-size: 11px;
+  color: #90EE90;
+  background: rgba(0, 255, 0, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.recipe-materials,
+.recipe-result,
+.recipe-xp {
+  font-size: 11px;
+  margin: 3px 0;
+  color: #e0e0e0;
+}
+
+.recipe-materials {
+  color: #ff8c42;
+}
+
+.recipe-result {
+  color: #90EE90;
+}
+
+.recipe-xp {
+  color: #87ceeb;
+}
+
+.recipe-button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  background: rgba(139, 69, 19, 0.4);
+  border: 1px solid #8b4513;
+  color: white;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+.recipe-button:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+.recipe-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background: rgba(139, 69, 19, 0.2);
+}

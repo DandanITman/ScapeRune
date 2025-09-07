@@ -1,0 +1,277 @@
+.bank-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 500px;
+  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+  border: 3px outset #666;
+  border-radius: 8px;
+  z-index: 1000;
+  font-family: 'Courier New', monospace;
+  color: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.bank-header {
+  background: linear-gradient(145deg, #5a5a5a, #4a4a4a);
+  padding: 8px 12px;
+  border-bottom: 2px inset #666;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bank-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffff00;
+}
+
+.bank-close-btn {
+  background: #ff4444;
+  border: 2px outset #ff6666;
+  color: white;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.bank-close-btn:hover {
+  background: #ff6666;
+}
+
+.bank-close-btn:active {
+  border-style: inset;
+}
+
+.bank-info {
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #555;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.bank-tabs {
+  display: flex;
+  background: #3a3a3a;
+  border-bottom: 1px solid #555;
+  padding: 4px;
+}
+
+.bank-tab {
+  background: #4a4a4a;
+  border: 2px outset #666;
+  padding: 6px 12px;
+  margin-right: 2px;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 4px 4px 0 0;
+}
+
+.bank-tab:hover {
+  background: #5a5a5a;
+}
+
+.bank-tab.active {
+  background: #6a6a6a;
+  border-style: inset;
+}
+
+.bank-content {
+  flex: 1;
+  display: flex;
+  height: calc(100% - 120px);
+}
+
+.bank-grid {
+  flex: 1;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 2px;
+  overflow-y: auto;
+  background: #2a2a2a;
+}
+
+.bank-slot {
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+  border: 2px inset #666;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  font-size: 11px;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.bank-slot:hover {
+  background: linear-gradient(145deg, #5a5a5a, #4a4a4a);
+  border-color: #777;
+}
+
+.bank-slot.has-item {
+  background: linear-gradient(145deg, #6a5a4a, #5a4a3a);
+}
+
+.bank-slot.has-item:hover {
+  background: linear-gradient(145deg, #7a6a5a, #6a5a4a);
+}
+
+.bank-item-name {
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bank-item-quantity {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffff00;
+  font-size: 9px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  min-width: 12px;
+  text-align: center;
+}
+
+.bank-actions {
+  width: 180px;
+  background: #3a3a3a;
+  border-left: 1px solid #555;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bank-action-group {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.bank-action-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffff00;
+  margin-bottom: 6px;
+}
+
+.bank-btn {
+  width: 100%;
+  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+  border: 2px outset #666;
+  color: white;
+  padding: 6px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  border-radius: 3px;
+  font-family: inherit;
+}
+
+.bank-btn:hover {
+  background: linear-gradient(145deg, #5a5a5a, #4a4a4a);
+}
+
+.bank-btn:active {
+  border-style: inset;
+}
+
+.bank-btn:disabled {
+  background: #2a2a2a;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #444;
+}
+
+.bank-search {
+  width: 100%;
+  background: #2a2a2a;
+  border: 2px inset #666;
+  color: white;
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  font-family: inherit;
+}
+
+.bank-search:focus {
+  outline: none;
+  border-color: #888;
+  background: #3a3a3a;
+}
+
+.bank-quantity-input {
+  width: 100%;
+  background: #2a2a2a;
+  border: 2px inset #666;
+  color: white;
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  font-family: inherit;
+  text-align: center;
+}
+
+.bank-quantity-input:focus {
+  outline: none;
+  border-color: #888;
+  background: #3a3a3a;
+}
+
+.bank-selected-item {
+  background: #4a3a2a;
+  border: 1px solid #8a6a4a;
+  border-radius: 4px;
+  padding: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.bank-selected-item-name {
+  font-weight: bold;
+  color: #ffff00;
+  margin-bottom: 2px;
+}
+
+.bank-selected-item-quantity {
+  color: #aaa;
+  font-size: 10px;
+}
+
+/* Scrollbar styling */
+.bank-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bank-grid::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.bank-grid::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.bank-grid::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}

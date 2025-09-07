@@ -4,7 +4,9 @@ import './StatsPanel.css';
 
 const StatsPanel: React.FC = () => {
   const { player } = useGameStore();
+  const getEquipmentBonuses = useGameStore(state => state.getEquipmentBonuses);
   const { stats, experience } = player;
+  const equipmentBonuses = getEquipmentBonuses();
 
   const skillNames = [
     'attack', 'defense', 'strength', 'hits', 'ranged', 'prayer', 'magic',
@@ -44,6 +46,16 @@ const StatsPanel: React.FC = () => {
         <h3>Player Statistics</h3>
         <p>Combat Level: {player.combatLevel}</p>
         <p>Total Level: {totalLevel}</p>
+      </div>
+
+      {/* Equipment Bonuses Section */}
+      <div className="equipment-bonuses">
+        <h4>Equipment Bonuses</h4>
+        <div className="bonus-row">
+          <span>Attack: +{equipmentBonuses.attackBonus}</span>
+          <span>Strength: +{equipmentBonuses.strengthBonus}</span>
+          <span>Defense: +{equipmentBonuses.defenseBonus}</span>
+        </div>
       </div>
       
       <div className="stats-grid">

@@ -1,33 +1,38 @@
-# RuneScape Classic Recreation
-
 # ScapeRune - RuneScape Classic Recreation
 
 🚀 **Live Repository**: https://github.com/DandanITman/ScapeRune
 
-A modern recreation of RuneScape Classic built with TypeScript, React, Three.js, and Vite. This project features authentic RSC combat mechanics, continuous two-way combat, and a complete 3D world with isometric camera.
+A modern recreation of RuneScape Classic built with TypeScript, React, Three.js, and Vite. This project features authentic RSC combat mechanics, comprehensive skill systems, world building with NPCs and towns, banking, shopping, and a complete 3D world with isometric camera.
 
 ## 🎮 Project Overview
 
-This project aims to recreate the nostalgic experience of RuneScape Classic as a single-player browser game using modern web technologies. The game features a 3D isometric world, comprehensive skill system, combat mechanics, and all the beloved features that made the original game special.
+This project aims to recreate the nostalgic experience of RuneScape Classic as a single-player browser game using modern web technologies. The game features a 3D isometric world, comprehensive skill system, combat mechanics, world building with towns and NPCs, and all the beloved features that made the original game special.
 
-## 🚀 Current Features (MVP)
+## 🚀 Current Features
 
-### ✅ Implemented
-- **3D Game World**: Isometric view with Three.js rendering
-- **Player Character**: Basic 3D player model with movement
-- **Movement Controls**: WASD/Arrow key movement
-- **User Interface**: Classic RuneScape-style interface with panels
-- **Stats System**: Complete 18-skill system with experience tracking
-- **Game State Management**: Persistent game state using Zustand
-- **Inventory System**: 30-slot inventory grid (placeholder items)
-- **World Environment**: Basic terrain with trees and lighting
+### ✅ Complete Systems
+- **🏗️ Foundation Systems**: Complete 3D engine, UI framework, and core architecture
+- **⚔️ Combat & Skills**: Full combat system with 8 implemented skills (Woodcutting, Mining, Fishing, Smithing, Cooking, Fletching, Crafting)
+- **🎒 Items & Equipment**: Comprehensive item system with equipment slots and bonuses
+- **🔨 Crafting & Production**: Complete production chains from raw materials to finished goods
+- **🏙️ World Building**: Towns, NPCs with dialogue, banking system, and shops
 
-### 🎯 Core Systems Framework
-- Experience calculation and level progression
-- Combat level calculation
-- Skill level requirements
-- Basic item framework
-- UI panel system (Stats, Inventory, Chat)
+### 🎯 Core Game Features
+- **3D Game World**: Isometric Lumbridge town with buildings and NPCs
+- **Player Character**: 3D player model with full movement and animations
+- **Combat System**: Real-time combat with monsters, damage calculation, and health bars
+- **18 Skills**: Complete skill system with experience, leveling, and requirements
+- **Banking**: Multi-tab bank storage with deposit/withdraw mechanics
+- **Shopping**: Buy/sell system with NPCs and shops
+- **Equipment**: Weapon and armor system with stat bonuses
+- **Crafting**: Production skills for creating items and equipment
+
+### � Gameplay Systems
+- **Movement**: Click-to-move with pathfinding and WASD camera controls
+- **Inventory**: 30-slot inventory with item stacking and interaction
+- **NPCs**: Dialogue trees, banking services, and shop interactions
+- **Buildings**: Functional bank, general store, castle, and church
+- **Economy**: Gold-based trading system with supply and demand
 
 ## 🛠️ Tech Stack
 
@@ -54,127 +59,41 @@ This project aims to recreate the nostalgic experience of RuneScape Classic as a
 ## 🎮 How to Play
 
 ### Controls
-- **Movement**: WASD keys or Arrow keys
-- **Interface**: Click the buttons at the top to open panels
-  - **Stats**: View skill levels and experience
-  - **Inventory**: View items (placeholder items currently)
-  - **Spells/Prayer/Friends/Options**: Coming soon
+- **Movement**: Left-click to move to a location, or use WASD for camera rotation
+- **Combat**: Left-click on monsters to attack them
+- **Interactions**: Right-click for context menus (attack, examine, enter buildings)
+- **Skills**: Left-click on trees (Woodcutting), rocks (Mining), or fishing spots (Fishing)
+- **Banking**: Right-click the bank building and select "enter" to access your bank
+- **Shopping**: Right-click the general store or talk to shopkeeper NPCs
+- **NPCs**: Right-click NPCs and select "talk" for dialogue options
 
-### Current Gameplay
-- Move around the 3D world
-- View your character stats and progression
-- Explore the basic environment with trees and terrain
+### Current Gameplay Features
+- **Explore Lumbridge**: Walk around the fully realized town with buildings and NPCs
+- **Skill Training**: Train 8 different skills with authentic RSC mechanics
+- **Combat**: Fight monsters with real-time combat and damage calculation
+- **Banking**: Store and organize items in your personal bank with multiple tabs
+- **Shopping**: Buy and sell items with NPCs and shops
+- **Equipment**: Equip weapons and armor with stat bonuses and requirements
+- **Crafting**: Create items using raw materials and recipes
 
-## 🗺️ Development Roadmap
+## 🗺️ Development Status
 
-### Phase 1: Foundation ✅ COMPLETE
-- [x] Setup TypeScript + Vite project structure
-- [x] Install and configure Three.js for 3D rendering
-- [x] Setup React for UI overlays
-- [x] Install Zustand for state management
-- [x] Create basic project structure and file organization
-- [x] Create basic game loop and rendering system
-- [x] Implement camera controls (isometric 3D view)
-- [x] Create simple 3D terrain system
-- [x] Implement basic player character model
-- [x] Add player movement controls (WASD/click-to-move)
-- [x] Design and implement main game interface
-- [x] Create inventory system UI
-- [x] Implement stats/skills panel
-- [x] Create experience/leveling system
-- [x] Implement basic skill framework
+**Current Phase:** Advanced Combat Systems (Phase 6)
 
-### Phase 2: Combat & Skills (Next)
-- [ ] Implement melee combat mechanics
-- [ ] Add basic monster AI
-- [ ] Create damage calculation system
-- [ ] Add combat animations
-- [ ] Implement Woodcutting skill
-- [ ] Add trees and chopping mechanics
-- [ ] Create Mining skill with rocks/ores
-- [ ] Add Fishing skill with fishing spots
+**Progress:** 5 of 10 major phases complete (50% of roadmap finished)
 
-### Phase 3: Items & Equipment
-- [ ] Create item system framework
-- [ ] Implement equipment slots system
-- [ ] Add basic weapons and armor
-- [ ] Create item stats and bonuses
-- [ ] Implement equipment requirements
+**Recent Major Achievements:**
+- ✅ **Phase 5 Complete**: World Building with Lumbridge town, NPCs, banking, and shops
+- ✅ **Complete Banking System**: Multi-tab storage with deposit/withdraw mechanics
+- ✅ **NPC Dialogue System**: Interactive NPCs with dialogue trees and services
+- ✅ **Shop System**: Buy/sell mechanics with inventory integration
+- ✅ **Building Interactions**: Functional buildings you can enter and use
 
-### Phase 4: Crafting & Production
-- [ ] Implement Smithing skill
-- [ ] Add Cooking skill mechanics
-- [ ] Create Fletching system
-- [ ] Add Crafting skill
-- [ ] Implement recipe system
+**Next Development Priority:**
+- 🔮 Magic system with spellbook and combat spells
+- 🏹 Ranged combat with bows and arrows
+- 🙏 Prayer system with bone burying and altar mechanics
+- ⚡ Special attacks for weapons
+- 💎 Monster drops and loot tables
 
-### Phase 5: World Building
-- [ ] Create basic town/city areas
-- [ ] Add NPC system
-- [ ] Implement basic shops
-- [ ] Add banks and banking system
-- [ ] Create travel/teleportation
-
-### Phase 6: Advanced Features
-- [ ] Implement Magic skill and spellbook
-- [ ] Add Ranged combat
-- [ ] Implement Prayer skill
-- [ ] Create quest framework
-- [ ] Add remaining skills (Agility, Thieving, etc.)
-
-## 🏗️ Architecture
-
-### Game Engine (`/src/engine/`)
-- **GameEngine.ts**: Core Three.js game engine with rendering loop
-- Handles 3D scene management, lighting, camera controls
-- Player and world object management
-
-### State Management (`/src/store/`)
-- **gameStore.ts**: Zustand store for game state
-- Player stats, experience, position tracking
-- Game settings and UI state
-
-### Components (`/src/components/`)
-- **Game.tsx**: Main game component wrapper
-- **GameInterface.tsx**: UI overlay with classic RS styling
-- **StatsPanel.tsx**: Character statistics panel
-- **InventoryPanel.tsx**: Inventory management interface
-
-### Styling
-- Classic RuneScape color scheme and UI design
-- Responsive layout with authentic feel
-- Custom CSS for game interface elements
-
-## 🎯 Skills System
-
-The game implements all 18 original RuneScape Classic skills:
-
-**Combat Skills**:
-- Attack, Defense, Strength, Hits (HP), Ranged, Prayer, Magic
-
-**Gathering Skills**:
-- Mining, Fishing, Woodcutting
-
-**Artisan Skills**:
-- Herblaw, Crafting, Fletching, Smithing, Cooking, Firemaking
-
-**Support Skills**:
-- Agility, Thieving
-
-Each skill follows the authentic experience curve with level 99 as the maximum.
-
-## 🤝 Contributing
-
-This is a recreation project built for educational and nostalgic purposes. Contributions are welcome!
-
-## 📝 License
-
-This project is for educational and nostalgic purposes only. RuneScape and RuneScape Classic are trademarks of Jagex Limited.
-
-## 🎮 Original Game Reference
-
-All game mechanics, skill systems, and design elements are based on the original RuneScape Classic (2001-2018). Reference material sourced from the [RuneScape Classic Wiki](https://classic.runescape.wiki/).
-
----
-
-**Current Status**: MVP Complete - Foundation systems implemented and ready for gameplay feature development!
+📋 **For detailed development roadmap and todo items, see [TODO.md](./TODO.md)**

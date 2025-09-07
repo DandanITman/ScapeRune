@@ -3,6 +3,8 @@ import { useGameStore } from '../store/gameStore';
 import StatsPanel from './StatsPanel';
 import InventoryPanel from './InventoryPanel';
 import CombatStylePanel from './CombatStylePanel';
+import EquipmentPanel from './EquipmentPanel';
+import SmithingPanel from './SmithingPanel';
 import './GameInterface.css';
 
 const GameInterface: React.FC = () => {
@@ -35,6 +37,18 @@ const GameInterface: React.FC = () => {
         >
           Combat
         </button>
+        <button 
+          className={`menu-button ${activePanel === 'equipment' ? 'active' : ''}`}
+          onClick={() => togglePanel('equipment')}
+        >
+          Equipment
+        </button>
+        <button 
+          className={`menu-button ${activePanel === 'smithing' ? 'active' : ''}`}
+          onClick={() => togglePanel('smithing')}
+        >
+          Smithing
+        </button>
         <button className="menu-button">Spells</button>
         <button className="menu-button">Prayer</button>
         <button className="menu-button">Friends</button>
@@ -60,6 +74,8 @@ const GameInterface: React.FC = () => {
       {activePanel === 'stats' && <StatsPanel />}
       {activePanel === 'inventory' && <InventoryPanel />}
       {activePanel === 'combat' && <CombatStylePanel />}
+      {activePanel === 'equipment' && <EquipmentPanel />}
+      {activePanel === 'smithing' && <SmithingPanel />}
 
       {/* Chat Area */}
       <div className="chat-area">

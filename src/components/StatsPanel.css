@@ -35,6 +35,31 @@
   text-align: center;
 }
 
+.equipment-bonuses {
+  border-bottom: 2px solid #8b4513;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+}
+
+.equipment-bonuses h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #90EE90;
+  text-align: center;
+}
+
+.bonus-row {
+  display: flex;
+  justify-content: space-around;
+  font-size: 11px;
+  text-align: center;
+}
+
+.bonus-row span {
+  color: #90EE90;
+  font-weight: bold;
+}
+
 .stats-grid {
   display: flex;
   flex-direction: column;

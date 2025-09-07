@@ -1,15 +1,26 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { GameEngine } from '../engine/GameEngine';
 import { MinimalGameEngine } from '../engine/MinimalGameEngine';
+import { WorldSystem } from '../systems/WorldSystem';
+import { NPCSystem } from '../systems/NPCSystem';
+import { BankingSystem } from '../systems/BankingSystem';
+import { ShopSystem } from '../systems/ShopSystem';
 import { useGameStore } from '../store/gameStore';
 import GameInterface from './GameInterface';
 import CombatUI from './CombatUI';
+import { BankPanel } from './BankPanel';
+import { ShopPanel } from './ShopPanel';
 import type { FloatingText, HealthBar } from './CombatUI';
+import type { ShopItem } from '../systems/NPCSystem';
 import * as THREE from 'three';
 
 const Game: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const gameEngineRef = useRef<GameEngine | MinimalGameEngine | null>(null);
+  const worldSystemRef = useRef<WorldSystem | null>(null);
+  const npcSystemRef = useRef<NPCSystem | null>(null);
+  const bankingSystemRef = useRef<BankingSystem | null>(null);
+  const shopSystemRef = useRef<ShopSystem | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -26,11 +37,17 @@ const Game: React.FC = () => {
   const [targetPosition, setTargetPosition] = useState<THREE.Vector3 | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const [clickIndicator, setClickIndicator] = useState<{x: number, y: number, show: boolean}>({x: 0, y: 0, show: false});
-  const [contextMenu, setContextMenu] = useState<{x: number, y: number, show: boolean, npc?: any}>({x: 0, y: 0, show: false});
+  const [contextMenu, setContextMenu] = useState<{x: number, y: number, show: boolean, npc?: THREE.Object3D}>({x: 0, y: 0, show: false});
   
   // Combat UI state
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [healthBars, setHealthBars] = useState<HealthBar[]>([]);
+
+  // World building UI state
+  const [showBankPanel, setShowBankPanel] = useState(false);
+  const [showShopPanel, setShowShopPanel] = useState(false);
+  const [currentShopItems, setCurrentShopItems] = useState<ShopItem[]>([]);
+  const [currentShopName, setCurrentShopName] = useState<string>('');
 
   // Helper function to add floating text
   const addFloatingText = (text: string, type: 'damage' | 'miss' | 'xp' | 'heal', screenX: number, screenY: number) => {
@@ -93,6 +110,205 @@ const Game: React.FC = () => {
     return { x, y };
   };
 
+  // Skill interaction handlers
+  const handleWoodcutting = (tree: THREE.Group) => {
+    if (!gameEngineRef.current || useMinimalEngine) return;
+    
+    const engine = gameEngineRef.current as GameEngine;
+    const woodcuttingSystem = engine.getWoodcuttingSystem();
+    const { player, addItemToInventory } = useGameStore.getState();
+    
+    // Default equipment (bronze axe for now)
+    const equipment = {
+      axeType: 'bronze' as const,
+      axeBonus: 1
+    };
+    
+    // Find the tree in the woodcutting system
+    const systemTree = woodcuttingSystem.getTrees().find(t => 
+      t.mesh === tree || (t.position.distanceTo(tree.position) < 1)
+    );
+    
+    if (!systemTree) {
+      console.error('Tree not found in woodcutting system');
+      return;
+    }
+    
+    // Attempt to chop the tree
+    const result = woodcuttingSystem.chopTree(systemTree, player.stats.woodcutting, equipment, addItemToInventory);
+    
+    // Get screen positions for floating text
+    const treeScreenPos = getScreenPosition(tree.position);
+    const playerPos = engine.getPlayerPosition();
+    const playerScreenPos = getScreenPosition(playerPos);
+    
+    if (result.success) {
+      // Apply woodcutting XP to game store
+      addExperience('woodcutting', result.experience);
+      
+      // Show XP over player's head
+      addFloatingText(`+${result.experience} Woodcutting XP`, 'xp', playerScreenPos.x, playerScreenPos.y - 30);
+      
+      // Show logs gained over tree
+      setTimeout(() => {
+        addFloatingText(`+1 ${result.logs}`, 'heal', treeScreenPos.x, treeScreenPos.y - 50);
+      }, 500);
+      
+      console.log(result.message);
+      
+      // Hide the tree visually if it was chopped down
+      if (tree) {
+        tree.visible = false;
+        
+        // Show tree respawn after some time
+        setTimeout(() => {
+          tree.visible = true;
+          addFloatingText('Tree respawned!', 'heal', treeScreenPos.x, treeScreenPos.y);
+        }, systemTree.respawnTime || 30000);
+      }
+    } else {
+      // Show failure message
+      addFloatingText(result.message, 'miss', treeScreenPos.x, treeScreenPos.y);
+      console.log(result.message);
+    }
+  };
+
+  const handleMining = (rock: THREE.Group) => {
+    if (!gameEngineRef.current || useMinimalEngine) return;
+    
+    const engine = gameEngineRef.current as GameEngine;
+    const miningSystem = engine.getMiningSystem();
+    const { player, addItemToInventory } = useGameStore.getState();
+    
+    // Default equipment (bronze pickaxe for now)
+    const equipment = {
+      pickaxeType: 'bronze' as const,
+      pickaxeLevel: 1,
+      swingsPerClick: 1
+    };
+    
+    // Find the rock in the mining system
+    const systemRock = miningSystem.getRocks().find(r => 
+      r.mesh === rock || (r.position.distanceTo(rock.position) < 1)
+    );
+    
+    if (!systemRock) {
+      console.error('Rock not found in mining system');
+      return;
+    }
+    
+    // Attempt to mine the rock
+    const result = miningSystem.mineRock(systemRock, player.stats.mining, equipment, addItemToInventory);
+    
+    // Get screen positions for floating text
+    const rockScreenPos = getScreenPosition(rock.position);
+    const playerPos = engine.getPlayerPosition();
+    const playerScreenPos = getScreenPosition(playerPos);
+    
+    if (result.success) {
+      // Apply mining XP to game store
+      addExperience('mining', result.experience);
+      
+      // Show XP over player's head
+      addFloatingText(`+${result.experience} Mining XP`, 'xp', playerScreenPos.x, playerScreenPos.y - 30);
+      
+      // Show ore gained over rock
+      setTimeout(() => {
+        addFloatingText(`+1 ${result.ore}`, 'heal', rockScreenPos.x, rockScreenPos.y - 50);
+        
+        // Show gem if found
+        if (result.gem) {
+          setTimeout(() => {
+            addFloatingText(`+1 ${result.gem}`, 'heal', rockScreenPos.x, rockScreenPos.y - 70);
+          }, 200);
+        }
+      }, 500);
+      
+      console.log(result.message);
+      
+      // Hide the rock temporarily if it was mined
+      if (rock) {
+        rock.visible = false;
+        
+        // Show rock respawn effect
+        const oreType = miningSystem.getOreType(systemRock.type);
+        if (oreType) {
+          setTimeout(() => {
+            rock.visible = true;
+            const sparkles = miningSystem.addRockRespawnEffect(systemRock);
+            if (sparkles) {
+              rock.add(sparkles);
+            }
+            addFloatingText('Rock respawned!', 'heal', rockScreenPos.x, rockScreenPos.y);
+          }, oreType.respawnTime);
+        }
+      }
+    } else {
+      // Show failure message
+      addFloatingText(result.message, 'miss', rockScreenPos.x, rockScreenPos.y);
+      console.log(result.message);
+    }
+  };
+
+  const handleFishing = (spot: THREE.Group) => {
+    if (!gameEngineRef.current || useMinimalEngine) return;
+    
+    const engine = gameEngineRef.current as GameEngine;
+    const fishingSystem = engine.getFishingSystem();
+    const { player, addItemToInventory } = useGameStore.getState();
+    
+    // Default equipment (small net for now)
+    const equipment = {
+      toolType: 'net' as const,
+      levelRequired: 1,
+      hasBait: true
+    };
+    
+    // Find the fishing spot in the fishing system
+    const systemSpot = fishingSystem.getFishingSpots().find(s => 
+      s.mesh === spot || (s.position.distanceTo(spot.position) < 1)
+    );
+    
+    if (!systemSpot) {
+      console.error('Fishing spot not found in fishing system');
+      return;
+    }
+    
+    // Attempt to fish
+    const result = fishingSystem.fish(systemSpot, player.stats.fishing, equipment, addItemToInventory);
+    
+    // Get screen positions for floating text
+    const spotScreenPos = getScreenPosition(spot.position);
+    const playerPos = engine.getPlayerPosition();
+    const playerScreenPos = getScreenPosition(playerPos);
+    
+    if (result.success) {
+      // Apply fishing XP to game store
+      addExperience('fishing', result.experience);
+      
+      // Show XP over player's head
+      addFloatingText(`+${result.experience} Fishing XP`, 'xp', playerScreenPos.x, playerScreenPos.y - 30);
+      
+      // Show fish caught over fishing spot
+      setTimeout(() => {
+        addFloatingText(`+1 ${result.fish}`, 'heal', spotScreenPos.x, spotScreenPos.y - 50);
+        
+        // Show other item if caught (boots, gloves, etc.)
+        if (result.otherItem) {
+          setTimeout(() => {
+            addFloatingText(`+1 ${result.otherItem}`, 'heal', spotScreenPos.x, spotScreenPos.y - 70);
+          }, 200);
+        }
+      }, 500);
+      
+      console.log(result.message);
+    } else {
+      // Show failure message
+      addFloatingText(result.message, 'miss', spotScreenPos.x, spotScreenPos.y);
+      console.log(result.message);
+    }
+  };
+
   useEffect(() => {
     if (!gameContainerRef.current) return;
 
@@ -112,6 +328,37 @@ const Game: React.FC = () => {
         gameEngineRef.current = new GameEngine(gameContainerRef.current);
       }
       console.log('GameEngine created successfully');
+      
+      setLoadingStep('Loading world systems...');
+      
+      // Initialize world and NPC systems for full engine
+      if (!useMinimalEngine && gameEngineRef.current) {
+        const engine = gameEngineRef.current as GameEngine;
+        const scene = engine.getScene();
+        
+        if (scene) {
+          // Initialize world system
+          worldSystemRef.current = new WorldSystem(scene);
+          
+          // Initialize NPC system  
+          npcSystemRef.current = new NPCSystem(scene);
+          
+          // Initialize banking system
+          bankingSystemRef.current = new BankingSystem();
+          
+          // Initialize shop system  
+          shopSystemRef.current = new ShopSystem();
+          
+          // Load Lumbridge town
+          worldSystemRef.current.loadTown('lumbridge');
+          worldSystemRef.current.createTownPaths('lumbridge');
+          
+          // Spawn town NPCs
+          npcSystemRef.current.spawnTownNPCs('lumbridge');
+          
+          console.log('World systems loaded successfully');
+        }
+      }
       
       setLoadingStep('Starting game loop...');
       gameEngineRef.current.start();
@@ -350,21 +597,47 @@ const Game: React.FC = () => {
         
         // Start woodcutting after reaching tree
         setTimeout(() => {
-          // Get screen position for floating text
-          const treeScreenPos = getScreenPosition(clickedTree.position);
-          const playerPos = engine.getPlayerPosition();
-          const playerScreenPos = getScreenPosition(playerPos);
-          
-          // Apply woodcutting XP to game store
-          addExperience('woodcutting', 25);
-          
-          // Show woodcutting XP over player's head
-          addFloatingText('+25 Woodcutting XP', 'xp', playerScreenPos.x, playerScreenPos.y - 30);
-          
-          // Show logs gained over tree
-          setTimeout(() => {
-            addFloatingText('+1 Logs', 'heal', treeScreenPos.x, treeScreenPos.y - 50);
-          }, 500);
+          handleWoodcutting(clickedTree);
+        }, 1000);
+        
+        return;
+      }
+
+      // Check if we clicked a rock
+      const clickedRock = engine.getClickedRock(mouseX, mouseY, rect.width, rect.height);
+      if (clickedRock) {
+        console.log('Clicked rock - starting mining');
+        
+        // Move to rock and start mining
+        const rockPos = clickedRock.position.clone();
+        rockPos.x += 2; // Stand next to rock
+        engine.movePlayerTo(rockPos);
+        setTargetPosition(rockPos);
+        setIsMoving(true);
+        
+        // Start mining after reaching rock
+        setTimeout(() => {
+          handleMining(clickedRock);
+        }, 1000);
+        
+        return;
+      }
+
+      // Check if we clicked a fishing spot
+      const clickedFishingSpot = engine.getClickedFishingSpot(mouseX, mouseY, rect.width, rect.height);
+      if (clickedFishingSpot) {
+        console.log('Clicked fishing spot - starting fishing');
+        
+        // Move to fishing spot and start fishing
+        const spotPos = clickedFishingSpot.position.clone();
+        spotPos.x += 2; // Stand next to spot
+        engine.movePlayerTo(spotPos);
+        setTargetPosition(spotPos);
+        setIsMoving(true);
+        
+        // Start fishing after reaching spot
+        setTimeout(() => {
+          handleFishing(clickedFishingSpot);
         }, 1000);
         
         return;
@@ -419,7 +692,7 @@ const Game: React.FC = () => {
           x: event.clientX,
           y: event.clientY,
           show: true,
-          npc: { userData: { name: 'Tree', type: 'tree' }, position: clickedTree.position }
+          npc: clickedTree
         });
         return;
       }
@@ -486,7 +759,98 @@ const Game: React.FC = () => {
       return;
     }
 
-    // Handle NPC actions
+    // Handle building interactions
+    if (npc.userData.type === 'building') {
+      const buildingType = npc.userData.buildingType;
+      const buildingName = npc.userData.name;
+      
+      switch (action) {
+        case 'enter':
+          if (buildingType === 'bank') {
+            setShowBankPanel(true);
+          } else if (buildingType === 'shop') {
+            // Get shop items from NPC system
+            if (npcSystemRef.current) {
+              const shopkeeperNPCs = ['lumbridge_shopkeeper'];
+              const shopkeeper = shopkeeperNPCs.find(id => npcSystemRef.current?.getNPC(id));
+              
+              if (shopkeeper) {
+                const npcData = npcSystemRef.current.getNPC(shopkeeper);
+                if (npcData && npcData.shopItems) {
+                  setCurrentShopItems(npcData.shopItems);
+                  setCurrentShopName(buildingName);
+                  setShowShopPanel(true);
+                }
+              }
+            }
+          }
+          break;
+          
+        case 'examine':
+          alert(`This is ${buildingName}.`);
+          break;
+      }
+      return;
+    }
+
+    // Handle NPC interactions with new dialogue system
+    if (npc.userData.type === 'npc') {
+      const npcId = npc.userData.npcId;
+      
+      switch (action) {
+        case 'talk':
+          if (npcSystemRef.current) {
+            const npcData = npcSystemRef.current.getNPC(npcId);
+            if (npcData && npcData.dialogue.length > 0) {
+              // Use first dialogue node for now - could be expanded to full dialogue system
+              const firstDialogue = npcData.dialogue[0];
+              
+              // Simple dialogue display - could be enhanced with proper dialogue UI
+              let dialogueText = `${npcData.name}: "${firstDialogue.text}"`;
+              
+              if (firstDialogue.options.length > 0) {
+                dialogueText += '\n\nOptions:';
+                firstDialogue.options.forEach((option, index) => {
+                  dialogueText += `\n${index + 1}. ${option.text}`;
+                });
+                
+                // Handle simple dialogue options
+                const choice = prompt(dialogueText + '\n\nEnter your choice (1-' + firstDialogue.options.length + '):');
+                const choiceIndex = parseInt(choice || '1') - 1;
+                
+                if (choiceIndex >= 0 && choiceIndex < firstDialogue.options.length) {
+                  const selectedOption = firstDialogue.options[choiceIndex];
+                  
+                  // Handle option actions
+                  switch (selectedOption.action) {
+                    case 'shop':
+                      if (npcData.shopItems) {
+                        setCurrentShopItems(npcData.shopItems);
+                        setCurrentShopName(npcData.name);
+                        setShowShopPanel(true);
+                      }
+                      break;
+                      
+                    case 'bank':
+                      setShowBankPanel(true);
+                      break;
+                      
+                    case 'close':
+                      // Do nothing, dialogue closes
+                      break;
+                  }
+                }
+              } else {
+                alert(dialogueText);
+              }
+            }
+          }
+          break;
+      }
+      return;
+    }
+
+    // Handle NPC actions (legacy system for existing NPCs)
     const npcPos = npc.position.clone();
     
     switch (action) {
@@ -841,6 +1205,22 @@ const Game: React.FC = () => {
           }
         }
       `}</style>
+      
+      {/* Bank Panel */}
+      {showBankPanel && (
+        <BankPanel 
+          onClose={() => setShowBankPanel(false)}
+        />
+      )}
+      
+      {/* Shop Panel */}
+      {showShopPanel && (
+        <ShopPanel 
+          shopItems={currentShopItems}
+          shopName={currentShopName}
+          onClose={() => setShowShopPanel(false)}
+        />
+      )}
     </div>
   );
 };
