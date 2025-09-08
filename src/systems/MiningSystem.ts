@@ -390,7 +390,7 @@ export class MiningSystem {
       rockGroup.add(oreModel);
       
       console.log(`Created custom ${rockType} ore model`);
-    } catch (error) {
+    } catch {
       console.warn(`Failed to load custom model for ${rockType}, using fallback`);
       // Fallback to the original geometry-based approach
       const fallbackRock = this.createFallbackRock(rockType);

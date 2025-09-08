@@ -1,15 +1,48 @@
 /* Equipment Panel Specific Styles */
 
 .equipment-panel {
-  width: 350px;
+  position: absolute;
+  width: 220px;
+  background: linear-gradient(135deg, #2C3E50, #34495E);
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+  color: #FFD700;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 1001;
+}
+
+.equipment-panel .inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid #FFD700;
+  padding-bottom: 4px;
+}
+
+.equipment-panel .inventory-header:active {
+  cursor: grabbing;
+}
+
+.equipment-panel .inventory-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #FFD700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .equipment-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(4, 1fr);
-  gap: 8px;
-  padding: 10px;
+  gap: 4px;
+  padding: 4px;
 }
 
 /* Equipment slot specific positioning */
@@ -25,11 +58,11 @@
 .ring-slot { grid-column: 3; grid-row: 3; }
 
 .equipment-slot {
-  width: 70px;
-  height: 70px;
-  border: 2px solid #8b4513;
+  width: 42px;
+  height: 42px;
+  border: 2px solid #34495E;
   border-radius: 4px;
-  background: rgba(139, 69, 19, 0.1);
+  background: rgba(52, 73, 94, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,23 +72,40 @@
 }
 
 .equipment-slot:hover {
-  border-color: #ffd700;
-  background: rgba(255, 215, 0, 0.1);
+  border-color: #FFD700;
+  background: rgba(255, 215, 0, 0.2);
+  transform: scale(1.05);
 }
 
 .equipped-item {
-  background: rgba(0, 255, 0, 0.1);
-  border: 1px solid #90EE90;
+  background: rgba(46, 204, 113, 0.2);
+  border: 2px solid #2ECC71;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.equipped-item:hover {
+  background: rgba(46, 204, 113, 0.3);
+  border-color: #27AE60;
+}
+
+.equipped-item .item-icon {
+  font-size: 20px;
 }
 
 .slot-label {
-  font-size: 8px;
-  color: #8b8b8b;
+  font-size: 6px;
+  color: #BDC3C7;
   text-align: center;
   text-transform: capitalize;
   line-height: 1.1;
   word-wrap: break-word;
-  max-width: 60px;
+  max-width: 38px;
+  font-weight: bold;
 }
 
 /* Tooltip Styles */

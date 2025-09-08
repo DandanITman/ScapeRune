@@ -93,6 +93,7 @@ export interface GameState {
   selectedRangedWeapon: string | null;
   selectedAmmo: string | null;
   questProgress: Record<string, PlayerQuestProgress>;
+  chatMessages: { id: number; text: string; timestamp: number }[];
 }
 
 // Game store interface
@@ -115,6 +116,7 @@ interface GameStore extends GameState {
   // Inventory actions
   addItemToInventory: (itemId: string, quantity?: number) => boolean;
   removeItemFromInventory: (slotIndex: number, quantity?: number) => void;
+  dropItem: (slotIndex: number, quantity?: number) => void;
   useItem: (slotIndex: number) => void;
   equipItem: (slotIndex: number) => void;
   unequipItem: (equipSlot: string) => void;
@@ -123,6 +125,7 @@ interface GameStore extends GameState {
   hasInventorySpace: () => boolean;
   findItemInInventory: (itemId: string) => number | null;
   getEquipmentBonuses: () => { attackBonus: number; strengthBonus: number; defenseBonus: number };
+  moveItemToSlot: (fromSlot: number, toSlot: number) => void;
   
   // Prayer actions
   activatePrayer: (prayerId: string) => { success: boolean; message: string };
@@ -140,6 +143,17 @@ interface GameStore extends GameState {
   // Smithing actions
   smeltOre: (recipeId: string) => { success: boolean; message: string; xp?: number };
   smithItem: (recipeId: string) => { success: boolean; message: string; xp?: number };
+  
+  // Save/Load system methods
+  setPlayerExperience: (skill: keyof PlayerExperience, value: number) => void;
+  setInventory: (inventory: InventorySlot[]) => void;
+  setEquipment: (equipment: Equipment) => void;
+  setQuestProgress: (questProgress: Record<string, PlayerQuestProgress>) => void;
+  setTutorialCompleted: (completed: boolean) => void;
+  updateSettings: (settings: Partial<Player['settings']>) => void;
+  
+  // Chat system
+  addChatMessage: (text: string) => void;
 }
 
 // Initial player state
@@ -229,7 +243,9 @@ const initialPlayer: Player = {
           index === 21 ? { ...ITEM_DEFINITIONS.law_rune, quantity: 3 } :
           index === 22 ? { ...ITEM_DEFINITIONS.shortbow, quantity: 1 } :
           index === 23 ? { ...ITEM_DEFINITIONS.bronze_arrow, quantity: 100 } :
-          index === 24 ? { ...ITEM_DEFINITIONS.bones, quantity: 5 } : null
+          index === 24 ? { ...ITEM_DEFINITIONS.bones, quantity: 10 } : 
+          index === 25 ? { ...ITEM_DEFINITIONS.bat_bones, quantity: 5 } :
+          index === 26 ? { ...ITEM_DEFINITIONS.big_bones, quantity: 3 } : null
   })),
   equipment: {},
   tutorialCompleted: false,
@@ -301,6 +317,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectedRangedWeapon: null,
   selectedAmmo: null,
   questProgress: {},
+  chatMessages: [
+    { id: 1, text: 'Welcome to RuneScape Classic!', timestamp: Date.now() },
+    { id: 2, text: 'Use the buttons above to access your stats and inventory.', timestamp: Date.now() }
+  ],
 
   setPlayerPosition: (position) =>
     set((state) => ({
@@ -371,7 +391,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   updateCurrentHits: (damage) => set((state) => ({
     player: {
       ...state.player,
-      hitpoints: Math.max(0, (state.player.hitpoints || state.player.stats.hits) - damage)
+      hitpoints: Math.max(0, (state.player.hitpoints || state.player.stats.hits) - damage),
+      currentHits: Math.max(0, (state.player.currentHits || state.player.stats.hits) - damage)
     }
   })),
 
@@ -422,6 +443,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set((state) => ({
       player: { ...state.player, inventory: newInventory }
     }));
+  },
+
+  dropItem: (slotIndex, quantity = 1) => {
+    // This will be called from the UI with engine context
+    get().removeItemFromInventory(slotIndex, quantity);
   },
 
   useItem: (slotIndex) => {
@@ -564,6 +590,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     return { attackBonus, strengthBonus, defenseBonus };
+  },
+
+  moveItemToSlot: (fromSlot, toSlot) => {
+    const state = get();
+    const newInventory = [...state.player.inventory];
+    
+    // Check if fromSlot is valid and has an item
+    if (fromSlot < 0 || fromSlot >= newInventory.length || !newInventory[fromSlot].item) {
+      return;
+    }
+    
+    // Check if toSlot is valid
+    if (toSlot < 0 || toSlot >= newInventory.length) {
+      return;
+    }
+    
+    // Don't move to the same slot
+    if (fromSlot === toSlot) {
+      return;
+    }
+    
+    const fromItem = newInventory[fromSlot].item;
+    const toItem = newInventory[toSlot].item;
+    
+    // If both slots have items of the same type, try to stack them
+    if (fromItem && toItem && fromItem.id === toItem.id && fromItem.stackable) {
+      const totalQuantity = fromItem.quantity + toItem.quantity;
+      const maxStack = 999999; // Default max stack for stackable items
+      
+      if (totalQuantity <= maxStack) {
+        // Stack the items
+        newInventory[toSlot].item = { ...toItem, quantity: totalQuantity };
+        newInventory[fromSlot].item = null;
+      } else {
+        // Partial stack - fill destination to max and leave remainder in source
+        const remainder = totalQuantity - maxStack;
+        newInventory[toSlot].item = { ...toItem, quantity: maxStack };
+        newInventory[fromSlot].item = { ...fromItem, quantity: remainder };
+      }
+    } else {
+      // Simple swap - move item from source to destination and vice versa
+      newInventory[fromSlot].item = toItem;
+      newInventory[toSlot].item = fromItem;
+    }
+    
+    set((state) => ({
+      player: { ...state.player, inventory: newInventory }
+    }));
   },
 
   // Smithing actions
@@ -929,6 +1003,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
           ...settings
         }
       }
+    }));
+  },
+
+  addChatMessage: (text: string) => {
+    set((state) => ({
+      ...state,
+      chatMessages: [
+        ...state.chatMessages.slice(-49), // Keep only last 49 messages + new one = 50 total
+        {
+          id: Date.now(),
+          text,
+          timestamp: Date.now()
+        }
+      ]
     }));
   }
 }));

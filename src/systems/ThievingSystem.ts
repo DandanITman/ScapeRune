@@ -264,7 +264,7 @@ export class ThievingSystem {
       return {
         success: true,
         experience: target.experience,
-        loot: lootAdded ? loot : undefined,
+        loot: (lootAdded && loot) ? loot : undefined,
         message: lootAdded && loot 
           ? `You successfully steal ${loot.quantity}x ${loot.name} from the ${target.name.toLowerCase()}.`
           : `You successfully steal from the ${target.name.toLowerCase()}, but your inventory is full!`,

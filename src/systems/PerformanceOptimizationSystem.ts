@@ -29,11 +29,10 @@ export class PerformanceOptimizationSystem {
   private metrics: PerformanceMetrics;
   private frameTimeHistory: number[] = [];
   private lastFrameTime: number = 0;
-  private performanceCounter: number = 0;
   private instancedMeshes: Map<string, THREE.InstancedMesh> = new Map();
   private batchedGeometries: Map<string, THREE.BufferGeometry> = new Map();
   private culledObjects: Set<THREE.Object3D> = new Set();
-  private memoryMonitor: any;
+  private memoryMonitor: number | null = null;
 
   constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
     this.renderer = renderer;
@@ -264,8 +263,10 @@ export class PerformanceOptimizationSystem {
   private updateMemoryMetrics(): void {
     // Get memory info if available
     if ('memory' in performance) {
-      const memory = (performance as any).memory;
-      this.metrics.memoryUsage = memory.usedJSHeapSize / (1024 * 1024); // Convert to MB
+      const memory = (performance as typeof performance & { memory?: { usedJSHeapSize: number } }).memory;
+      if (memory) {
+        this.metrics.memoryUsage = memory.usedJSHeapSize / (1024 * 1024); // Convert to MB
+      }
     }
     
     // Update renderer info
@@ -281,8 +282,8 @@ export class PerformanceOptimizationSystem {
     this.clearTextureCache();
     
     // Force garbage collection hint
-    if ('gc' in window && typeof (window as any).gc === 'function') {
-      (window as any).gc();
+    if ('gc' in window && typeof (window as typeof window & { gc?: () => void }).gc === 'function') {
+      (window as typeof window & { gc: () => void }).gc();
     }
   }
 
@@ -449,8 +450,17 @@ export class PerformanceOptimizationSystem {
     // Low detail (far)
     const lowDetail = mesh.clone();
     if (lowDetail.material instanceof THREE.MeshLambertMaterial) {
-      lowDetail.material = lowDetail.material.clone();
-      lowDetail.material.wireframe = false;
+      const clonedMaterial = lowDetail.material.clone() as THREE.MeshLambertMaterial;
+      clonedMaterial.wireframe = false;
+      lowDetail.material = clonedMaterial;
+    } else if (lowDetail.material instanceof THREE.MeshPhongMaterial) {
+      const clonedMaterial = lowDetail.material.clone() as THREE.MeshPhongMaterial;
+      clonedMaterial.wireframe = false;
+      lowDetail.material = clonedMaterial;
+    } else if (lowDetail.material instanceof THREE.MeshBasicMaterial) {
+      const clonedMaterial = lowDetail.material.clone() as THREE.MeshBasicMaterial;
+      clonedMaterial.wireframe = false;
+      lowDetail.material = clonedMaterial;
     }
     lod.addLevel(lowDetail, 50);
     

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GameEngine } from '../engine/GameEngine';
 import { MinimalGameEngine } from '../engine/MinimalGameEngine';
 import { WorldSystem } from '../systems/WorldSystem';
@@ -15,6 +15,24 @@ import { TutorialPanel } from './TutorialPanel';
 import type { FloatingText, HealthBar } from './CombatUI';
 import type { ShopItem } from '../systems/NPCSystem';
 import * as THREE from 'three';
+
+// Define combat event types for better type safety
+interface CombatEvent {
+  type: 'player_attack' | 'npc_attack';
+  result: {
+    success: boolean;
+    damage: number;
+    xp?: {
+      attack: number;
+      strength: number;
+      defense: number;
+      hits: number;
+    };
+    npcDead?: boolean;
+    playerDead?: boolean;
+  };
+  npc: THREE.Object3D;
+}
 
 const Game: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -40,12 +58,27 @@ const Game: React.FC = () => {
   const cameraRotationSpeed = 0.02;
   const [targetPosition, setTargetPosition] = useState<THREE.Vector3 | null>(null);
   const [isMoving, setIsMoving] = useState(false);
+  
+  // Suppress unused variable warnings for these state setters that are used in event handlers
+  void targetPosition;
+  void isMoving;
   const [clickIndicator, setClickIndicator] = useState<{x: number, y: number, show: boolean}>({x: 0, y: 0, show: false});
   const [contextMenu, setContextMenu] = useState<{x: number, y: number, show: boolean, npc?: THREE.Object3D}>({x: 0, y: 0, show: false});
   
   // Combat UI state
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [healthBars, setHealthBars] = useState<HealthBar[]>([]);
+  
+  // Magic spell state - get selectedSpell from store instead of local state
+  const { selectedSpell } = useGameStore();
+  const [spellAnimations, setSpellAnimations] = useState<{id: string, x: number, y: number, type: string}[]>([]);
+  
+  // Cursor feedback state
+  const [cursorFeedback, setCursorFeedback] = useState<{x: number, y: number, type: 'interact' | 'attack' | null}>({ x: 0, y: 0, type: null });
+  const [hoveredNPC, setHoveredNPC] = useState<THREE.Object3D | null>(null);
+  
+  // Store world positions for health bar entities to update their screen positions
+  const healthBarEntities = useRef<Map<string, THREE.Vector3>>(new Map());
 
   // World building UI state
   const [showBankPanel, setShowBankPanel] = useState(false);
@@ -54,7 +87,7 @@ const Game: React.FC = () => {
   const [currentShopName, setCurrentShopName] = useState<string>('');
 
   // Helper function to add floating text
-  const addFloatingText = (text: string, type: 'damage' | 'miss' | 'xp' | 'heal', screenX: number, screenY: number) => {
+  const addFloatingText = useCallback((text: string, type: 'damage' | 'miss' | 'xp' | 'heal', screenX: number, screenY: number) => {
     const newText: FloatingText = {
       id: `${Date.now()}_${Math.random()}`,
       text,
@@ -64,38 +97,21 @@ const Game: React.FC = () => {
       timestamp: Date.now()
     };
     setFloatingTexts(prev => [...prev, newText]);
-  };
+  }, []);
 
   // Helper function to remove floating text
   const removeFloatingText = (id: string) => {
     setFloatingTexts(prev => prev.filter(text => text.id !== id));
   };
 
-  // Helper function to update health bars
-  const updateHealthBar = (id: string, name: string, currentHealth: number, maxHealth: number, screenX: number, screenY: number, isPlayer: boolean = false) => {
-    const newHealthBar: HealthBar = {
-      id,
-      name,
-      currentHealth,
-      maxHealth,
-      x: screenX,
-      y: screenY,
-      isPlayer
-    };
-    
-    setHealthBars(prev => {
-      const filtered = prev.filter(bar => bar.id !== id);
-      return [...filtered, newHealthBar];
-    });
-  };
-
   // Helper function to remove health bar
   const removeHealthBar = (id: string) => {
     setHealthBars(prev => prev.filter(bar => bar.id !== id));
+    healthBarEntities.current.delete(id);
   };
 
   // Helper function to get screen position from world position
-  const getScreenPosition = (worldPosition: THREE.Vector3): { x: number, y: number } => {
+  const getScreenPosition = useCallback((worldPosition: THREE.Vector3): { x: number, y: number } => {
     if (!gameEngineRef.current || useMinimalEngine) return { x: 0, y: 0 };
     
     const engine = gameEngineRef.current as GameEngine;
@@ -112,10 +128,34 @@ const Game: React.FC = () => {
     const y = (vector.y * -0.5 + 0.5) * canvas.clientHeight;
 
     return { x, y };
-  };
+  }, [useMinimalEngine]);
+
+  // Helper function to update health bars
+  const updateHealthBar = useCallback((id: string, name: string, currentHealth: number, maxHealth: number, worldPosition: THREE.Vector3, isPlayer: boolean = false) => {
+    // Store the world position for continuous screen position updates
+    healthBarEntities.current.set(id, worldPosition.clone());
+    
+    // Calculate initial screen position
+    const screenPos = getScreenPosition(worldPosition);
+    
+    const newHealthBar: HealthBar = {
+      id,
+      name,
+      currentHealth,
+      maxHealth,
+      x: screenPos.x,
+      y: screenPos.y,
+      isPlayer
+    };
+    
+    setHealthBars(prev => {
+      const filtered = prev.filter(bar => bar.id !== id);
+      return [...filtered, newHealthBar];
+    });
+  }, [getScreenPosition]);
 
   // Skill interaction handlers
-  const handleWoodcutting = (tree: THREE.Group) => {
+  const handleWoodcutting = useCallback((tree: THREE.Group) => {
     if (!gameEngineRef.current || useMinimalEngine) return;
     
     const engine = gameEngineRef.current as GameEngine;
@@ -175,9 +215,9 @@ const Game: React.FC = () => {
       addFloatingText(result.message, 'miss', treeScreenPos.x, treeScreenPos.y);
       console.log(result.message);
     }
-  };
+  }, [useMinimalEngine, getScreenPosition, addExperience, addFloatingText]);
 
-  const handleMining = (rock: THREE.Group) => {
+  const handleMining = useCallback((rock: THREE.Group) => {
     if (!gameEngineRef.current || useMinimalEngine) return;
     
     const engine = gameEngineRef.current as GameEngine;
@@ -252,9 +292,9 @@ const Game: React.FC = () => {
       addFloatingText(result.message, 'miss', rockScreenPos.x, rockScreenPos.y);
       console.log(result.message);
     }
-  };
+  }, [useMinimalEngine, getScreenPosition, addExperience, addFloatingText]);
 
-  const handleFishing = (spot: THREE.Group) => {
+  const handleFishing = useCallback((spot: THREE.Group) => {
     if (!gameEngineRef.current || useMinimalEngine) return;
     
     const engine = gameEngineRef.current as GameEngine;
@@ -311,7 +351,43 @@ const Game: React.FC = () => {
       addFloatingText(result.message, 'miss', spotScreenPos.x, spotScreenPos.y);
       console.log(result.message);
     }
-  };
+  }, [useMinimalEngine, getScreenPosition, addExperience, addFloatingText]);
+
+  // Handler for dropping items from inventory
+  const handleDropItem = useCallback((slotIndex: number, quantity: number = 1) => {
+    if (!gameEngineRef.current || useMinimalEngine) return;
+    
+    const engine = gameEngineRef.current as GameEngine;
+    const { player, removeItemFromInventory } = useGameStore.getState();
+    const item = player.inventory[slotIndex]?.item;
+    
+    if (!item) return;
+    
+    // Get the player's current position
+    const playerPosition = engine.getPlayerPosition();
+    
+    // Create dropped item data
+    const droppedItem = {
+      id: `dropped_${Date.now()}_${Math.random()}`,
+      itemId: item.id,
+      name: item.name,
+      quantity: Math.min(quantity, item.quantity),
+      noted: false, // Items dropped from inventory are not noted
+      position: {
+        x: playerPosition.x + (Math.random() - 0.5) * 2, // Random position near player
+        y: playerPosition.y,
+        z: playerPosition.z + (Math.random() - 0.5) * 2
+      }
+    };
+    
+    // Add the dropped item to the engine's drop system
+    engine.addDroppedItem(droppedItem);
+    
+    // Remove the item from the inventory
+    removeItemFromInventory(slotIndex, quantity);
+    
+    console.log(`Dropped ${quantity}x ${item.name} at player position`);
+  }, [useMinimalEngine]);
 
   useEffect(() => {
     if (!gameContainerRef.current) return;
@@ -402,7 +478,7 @@ const Game: React.FC = () => {
         gameEngineRef.current.dispose();
       }
     };
-  }, [setGameLoaded]);
+  }, [setGameLoaded, showTutorial, useMinimalEngine]);
 
   // Handle keyboard input (camera rotation)
   useEffect(() => {
@@ -427,18 +503,84 @@ const Game: React.FC = () => {
         engine.rotateCamera(cameraRotationSpeed);
       }
 
+      // Update health bar screen positions based on their world positions
+      setHealthBars(prev => {
+        return prev.map(healthBar => {
+          const worldPos = healthBarEntities.current.get(healthBar.id);
+          if (worldPos) {
+            const screenPos = getScreenPosition(worldPos);
+            return {
+              ...healthBar,
+              x: screenPos.x,
+              y: screenPos.y
+            };
+          }
+          return healthBar;
+        });
+      });
+
       requestAnimationFrame(updateCamera);
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    
+    // Add mouse move handler for cursor feedback
+    const handleMouseMove = (event: MouseEvent) => {
+      const container = gameContainerRef.current;
+      const engine = gameEngineRef.current as GameEngine;
+      if (!container || !engine || useMinimalEngine) return;
+      
+      const rect = container.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      
+      // Check what's under the cursor
+      const clickedNPC = engine.getClickedNPC(mouseX, mouseY, rect.width, rect.height);
+      const clickedTree = engine.getClickedTree(mouseX, mouseY, rect.width, rect.height);
+      const clickedRock = engine.getClickedRock(mouseX, mouseY, rect.width, rect.height);
+      
+      // Handle NPC hovering and outline
+      if (clickedNPC && clickedNPC !== hoveredNPC) {
+        // Remove outline from previous NPC
+        if (hoveredNPC) {
+          engine.setNPCOutline(hoveredNPC, false);
+        }
+        // Add outline to new NPC
+        engine.setNPCOutline(clickedNPC, true);
+        setHoveredNPC(clickedNPC);
+      } else if (!clickedNPC && hoveredNPC) {
+        // Remove outline when not hovering any NPC
+        engine.setNPCOutline(hoveredNPC, false);
+        setHoveredNPC(null);
+      }
+      
+      if (clickedNPC) {
+        // Show attack cursor for NPCs
+        setCursorFeedback({ x: mouseX, y: mouseY, type: 'attack' });
+      } else if (clickedTree || clickedRock) {
+        // Show interact cursor for resources
+        setCursorFeedback({ x: mouseX, y: mouseY, type: 'interact' });
+      } else {
+        // Clear cursor feedback
+        setCursorFeedback({ x: 0, y: 0, type: null });
+      }
+    };
+    
+    const container = gameContainerRef.current;
+    if (container) {
+      container.addEventListener('mousemove', handleMouseMove);
+    }
     updateCamera();
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      if (container) {
+        container.removeEventListener('mousemove', handleMouseMove);
+      }
     };
-  }, [cameraRotationSpeed]);
+  }, [cameraRotationSpeed, useMinimalEngine, getScreenPosition, hoveredNPC]);
 
   // Tutorial progression checking
   useEffect(() => {
@@ -512,6 +654,52 @@ const Game: React.FC = () => {
       const clickedNPC = engine.getClickedNPC(mouseX, mouseY, rect.width, rect.height);
       if (clickedNPC) {
         const npcName = clickedNPC.userData.name;
+        
+        // Check if we have a spell selected - if so, cast it instead of attacking
+        if (selectedSpell) {
+          console.log(`Casting ${selectedSpell} on ${npcName}!`);
+          
+          // Get player stats and inventory for spell casting
+          const playerStats = { magic: useGameStore.getState().player.stats.magic };
+          const inventory = useGameStore.getState().player.inventory;
+          
+          // Try to cast the spell
+          const success = engine.castSpellOnTarget(selectedSpell, clickedNPC, playerStats, inventory);
+          
+          if (success) {
+            // Add spell animation
+            const spellAnimation = {
+              id: `spell_${Date.now()}`,
+              x: mouseX,
+              y: mouseY,
+              type: selectedSpell
+            };
+            setSpellAnimations(prev => [...prev, spellAnimation]);
+            
+            // Remove animation after 1 second
+            setTimeout(() => {
+              setSpellAnimations(prev => prev.filter(anim => anim.id !== spellAnimation.id));
+            }, 1000);
+            
+            // Add XP for magic (assuming 10xp per cast for now)
+            addExperience('magic', 10);
+            
+            // Show floating magic XP text
+            const playerPos = engine.getPlayerPosition();
+            const playerScreenPos = getScreenPosition(playerPos);
+            setTimeout(() => {
+              addFloatingText(`+10 Magic`, 'xp', playerScreenPos.x, playerScreenPos.y - 60);
+            }, 300);
+            
+            console.log(`Successfully cast ${selectedSpell} on ${npcName}!`);
+          } else {
+            console.log(`Failed to cast ${selectedSpell} - insufficient runes or invalid target`);
+          }
+          
+          return; // Don't do regular attack if we cast a spell
+        }
+        
+        // Regular attack logic (unchanged)
         console.log(`Left-clicked NPC: ${npcName} - Attacking!`);
         
         // Move to NPC and attack
@@ -531,7 +719,7 @@ const Game: React.FC = () => {
           }
           
           // Start continuous combat
-          engine.startCombat(clickedNPC, playerStats, combatStyle, (event: any) => {
+          engine.startCombat(clickedNPC, playerStats, combatStyle, (event: CombatEvent) => {
             const { type, result, npc } = event;
             
             if (type === 'player_attack') {
@@ -539,25 +727,22 @@ const Game: React.FC = () => {
               const npcName = npc.userData.name || 'NPC';
           
           if (combatResult.success) {
-            let message = `💥 You hit the ${npcName} for ${combatResult.damage} damage!`;
+            // Note: message variable is used for debugging but not displayed directly
+            // The actual UI feedback is shown through floating text
+            const debugMessage = `💥 You hit the ${npcName} for ${combatResult.damage} damage!`;
             
             if (combatResult.npcDead) {
-              message += `\n\n� You have defeated the ${npcName}!`;
+              console.log(debugMessage + `\n\n� You have defeated the ${npcName}!`);
             }
             
             // Add experience gained
             const xp = combatResult.xp;
-            message += `\n\n📈 Experience Gained:`;
-            if (xp.attack > 0) message += `\n+${xp.attack} Attack XP`;
-            if (xp.strength > 0) message += `\n+${xp.strength} Strength XP`;
-            if (xp.defense > 0) message += `\n+${xp.defense} Defense XP`;
-            if (xp.hits > 0) message += `\n+${xp.hits} Hits XP`;
-            
-            // Apply XP to game store
-            if (xp.attack > 0) addExperience('attack', xp.attack);
-            if (xp.strength > 0) addExperience('strength', xp.strength);
-            if (xp.defense > 0) addExperience('defense', xp.defense);
-            if (xp.hits > 0) addExperience('hits', xp.hits);
+            if (xp) {
+              // Apply XP to game store
+              if (xp.attack > 0) addExperience('attack', xp.attack);
+              if (xp.strength > 0) addExperience('strength', xp.strength);
+              if (xp.defense > 0) addExperience('defense', xp.defense);
+              if (xp.hits > 0) addExperience('hits', xp.hits);
             
                 // Get screen position for floating text
                 const npcScreenPos = getScreenPosition(npc.position);
@@ -568,7 +753,7 @@ const Game: React.FC = () => {
                 addFloatingText(`${combatResult.damage}`, 'damage', npcScreenPos.x, npcScreenPos.y - 20);
                 
                 // Show XP gains over player's head with slight delay and offset
-                let xpMessages: string[] = [];
+                const xpMessages: string[] = [];
                 if (xp.attack > 0) xpMessages.push(`+${xp.attack} Att`);
                 if (xp.strength > 0) xpMessages.push(`+${xp.strength} Str`);
                 if (xp.defense > 0) xpMessages.push(`+${xp.defense} Def`);
@@ -578,15 +763,18 @@ const Game: React.FC = () => {
                   setTimeout(() => {
                     addFloatingText(msg, 'xp', playerScreenPos.x + (index * 30 - 45), playerScreenPos.y - 40);
                   }, 300 + index * 100);
-                });            // Update health bar for NPC
+                });
+            }
+            // Update health bar for NPC - position above the NPC's head
             const npcStats = clickedNPC.userData.stats;
+            const healthBarPosition = npc.position.clone();
+            healthBarPosition.y += 1.2; // Offset above the NPC's head
             updateHealthBar(
               `npc_${clickedNPC.id}`, 
               npcName, 
               npcStats.currentHits || 0, 
               npcStats.hits || 10, 
-              npcScreenPos.x, 
-              npcScreenPos.y
+              healthBarPosition
             );
             
             if (combatResult.npcDead) {
@@ -612,13 +800,14 @@ const Game: React.FC = () => {
             addFloatingText(`${attackResult.damage}`, 'damage', playerScreenPos.x, playerScreenPos.y - 20);
             
             // Update player health bar
+            const playerPos = engine.getPlayerPosition();
             updateHealthBar(
               'player',
               'You',
               playerStats.currentHits,
               playerStats.hits,
-              playerScreenPos.x,
-              playerScreenPos.y
+              playerPos,
+              true
             );
             
             if (attackResult.playerDead) {
@@ -777,14 +966,12 @@ const Game: React.FC = () => {
       container.addEventListener('contextmenu', handleRightClick);
       container.style.cursor = 'pointer';
 
-      return () => {
-        container.removeEventListener('click', handleClick);
-        container.removeEventListener('contextmenu', handleRightClick);
-      };
-    }
-  }, [setTargetPosition, setIsMoving]);
-
-  // Close context menu when clicking elsewhere
+    return () => {
+      container.removeEventListener('click', handleClick);
+      container.removeEventListener('contextmenu', handleRightClick);
+    };
+  }
+}, [setTargetPosition, setIsMoving, addExperience, getScreenPosition, handleFishing, handleMining, handleWoodcutting, useMinimalEngine, addFloatingText, updateHealthBar, selectedSpell]);  // Close context menu when clicking elsewhere
   useEffect(() => {
     const handleDocumentClick = () => {
       setContextMenu({x: 0, y: 0, show: false});
@@ -820,7 +1007,7 @@ const Game: React.FC = () => {
   }, []);
 
   // Handle context menu actions
-  const handleContextAction = (action: string, npc: any) => {
+  const handleContextAction = (action: string, npc: THREE.Object3D) => {
     setContextMenu({x: 0, y: 0, show: false});
     
     if (!gameEngineRef.current || useMinimalEngine) return;
@@ -846,7 +1033,7 @@ const Game: React.FC = () => {
       const dropData = npc.userData.dropData;
       
       switch (action) {
-        case 'take':
+        case 'take': {
           // Move to item and pick it up
           const itemPos = npc.position.clone();
           engine.movePlayerTo(itemPos);
@@ -854,11 +1041,13 @@ const Game: React.FC = () => {
           setIsMoving(true);
           
           setTimeout(() => {
-            const success = engine.pickupDroppedItem(npc);
+            const success = engine.pickupDroppedItem(npc as THREE.Mesh);
             if (success) {
               // Show pickup message
               const itemScreenPos = getScreenPosition(npc.position);
-              addFloatingText(`+${dropData.quantity} ${dropData.name}`, 'heal', itemScreenPos.x, itemScreenPos.y);
+              if (dropData) {
+                addFloatingText(`+${dropData.quantity} ${dropData.name}`, 'heal', itemScreenPos.x, itemScreenPos.y);
+              }
             } else {
               // Show inventory full message
               const playerPos = engine.getPlayerPosition();
@@ -867,10 +1056,14 @@ const Game: React.FC = () => {
             }
           }, 1000);
           break;
+        }
           
-        case 'examine':
-          alert(`${dropData.name}: ${dropData.itemId.replace(/_/g, ' ')}`);
+        case 'examine': {
+          if (dropData) {
+            alert(`${dropData.name}: ${dropData.itemId.replace(/_/g, ' ')}`);
+          }
           break;
+        }
       }
       return;
     }
@@ -1006,15 +1199,8 @@ const Game: React.FC = () => {
         setIsMoving(true);
         
         setTimeout(() => {
-          const npcName = npc.userData.name;
-          let dialogue = `${npcName}: "Hello there, adventurer!"`;
-          
-          if (npcName === 'Goblin') dialogue = `${npcName}: "Grrr! What you want?"`;
-          else if (npcName === 'Cow') dialogue = `${npcName}: "Moo! *chews grass peacefully*"`;
-          else if (npcName === 'Chicken') dialogue = `${npcName}: "Bawk bawk! *pecks at ground*"`;
-          else if (npcName === 'Rat') dialogue = `${npcName}: "*squeaks and scurries*"`;
-          
-          alert(dialogue);
+          // Use chat bubble instead of alert
+          engine.interactWithNPC(npc);
         }, 1000);
         break;
         
@@ -1033,7 +1219,7 @@ const Game: React.FC = () => {
           }
           
           // Start continuous combat
-          engine.startCombat(npc, playerStats, combatStyle, (event: any) => {
+          engine.startCombat(npc, playerStats, combatStyle, (event: CombatEvent) => {
             const { type, result, npc: targetNpc } = event;
             
             if (type === 'player_attack') {
@@ -1041,25 +1227,22 @@ const Game: React.FC = () => {
               const npcName = targetNpc.userData.name || 'NPC';
               
               if (combatResult.success) {
-            let message = `💥 You hit the ${npcName} for ${combatResult.damage} damage!`;
+            // Note: message variable is used for debugging but not displayed directly
+            // The actual UI feedback is shown through floating text
+            const debugMessage = `💥 You hit the ${npcName} for ${combatResult.damage} damage!`;
             
             if (combatResult.npcDead) {
-              message += `\n\n� You have defeated the ${npcName}!`;
+              console.log(debugMessage + `\n\n� You have defeated the ${npcName}!`);
             }
             
             // Add experience gained
             const xp = combatResult.xp;
-            message += `\n\n📈 Experience Gained:`;
-            if (xp.attack > 0) message += `\n+${xp.attack} Attack XP`;
-            if (xp.strength > 0) message += `\n+${xp.strength} Strength XP`;
-            if (xp.defense > 0) message += `\n+${xp.defense} Defense XP`;
-            if (xp.hits > 0) message += `\n+${xp.hits} Hits XP`;
-            
-            // Apply XP to game store
-            if (xp.attack > 0) addExperience('attack', xp.attack);
-            if (xp.strength > 0) addExperience('strength', xp.strength);
-            if (xp.defense > 0) addExperience('defense', xp.defense);
-            if (xp.hits > 0) addExperience('hits', xp.hits);
+            if (xp) {
+              // Apply XP to game store
+              if (xp.attack > 0) addExperience('attack', xp.attack);
+              if (xp.strength > 0) addExperience('strength', xp.strength);
+              if (xp.defense > 0) addExperience('defense', xp.defense);
+              if (xp.hits > 0) addExperience('hits', xp.hits);
             
                 // Get screen position for floating text
                 const npcScreenPos = getScreenPosition(npc.position);
@@ -1070,7 +1253,7 @@ const Game: React.FC = () => {
                 addFloatingText(`${combatResult.damage}`, 'damage', npcScreenPos.x, npcScreenPos.y - 20);
                 
                 // Show XP gains over player's head with slight delay and offset
-                let xpMessages: string[] = [];
+                const xpMessages: string[] = [];
                 if (xp.attack > 0) xpMessages.push(`+${xp.attack} Att`);
                 if (xp.strength > 0) xpMessages.push(`+${xp.strength} Str`);
                 if (xp.defense > 0) xpMessages.push(`+${xp.defense} Def`);
@@ -1080,15 +1263,19 @@ const Game: React.FC = () => {
                   setTimeout(() => {
                     addFloatingText(msg, 'xp', playerScreenPos.x + (index * 30 - 45), playerScreenPos.y - 40);
                   }, 300 + index * 100);
-                });            // Update health bar for NPC
+                });
+            }
+            // Update health bar for NPC - position above the NPC's head
+            const npcScreenPos = getScreenPosition(npc.position);
             const npcStats = npc.userData.stats;
+            const healthBarPosition = targetNpc.position.clone();
+            healthBarPosition.y += 1.2; // Offset above the NPC's head
             updateHealthBar(
               `npc_${npc.id}`, 
               npcName, 
               npcStats.currentHits || 0, 
               npcStats.hits || 10, 
-              npcScreenPos.x, 
-              npcScreenPos.y
+              healthBarPosition
             );
             
             if (combatResult.npcDead) {
@@ -1099,7 +1286,7 @@ const Game: React.FC = () => {
                   
                   // Remove health bar when NPC dies
                   setTimeout(() => {
-                    removeHealthBar(`npc_${targetNpc.id}`);
+                    removeHealthBar(`npc_${npc.id}`);
                   }, 2000);
                 }
               } else {
@@ -1124,14 +1311,17 @@ const Game: React.FC = () => {
                 // Show damage taken by player
                 addFloatingText(`${attackResult.damage}`, 'damage', playerScreenPos.x, playerScreenPos.y - 20);
                 
-                // Update player health bar
+                // Update player health bar - position above the player's head
+                const playerPos = engine.getPlayerPosition();
+                const playerHealthBarPosition = playerPos.clone();
+                playerHealthBarPosition.y += 1.2; // Offset above the player's head
                 updateHealthBar(
                   'player',
                   'You',
                   updatedPlayerStats.currentHits,
                   updatedPlayerStats.hits,
-                  playerScreenPos.x,
-                  playerScreenPos.y
+                  playerHealthBarPosition,
+                  true
                 );
                 
                 if (attackResult.playerDead) {
@@ -1154,7 +1344,7 @@ const Game: React.FC = () => {
         }, 1000);
         break;
         
-      case 'examine':
+      case 'examine': {
         const npcName = npc.userData.name;
         let examineText = `It's a ${npcName}.`;
         
@@ -1165,6 +1355,7 @@ const Game: React.FC = () => {
         
         alert(examineText);
         break;
+      }
     }
   };
 
@@ -1248,7 +1439,7 @@ const Game: React.FC = () => {
           {contextMenu.npc?.userData?.type === 'dropped_item' ? (
             <>
               <div 
-                onClick={() => handleContextAction('take', contextMenu.npc)}
+                onClick={() => contextMenu.npc && handleContextAction('take', contextMenu.npc)}
                 style={{
                   padding: '4px 8px',
                   cursor: 'pointer',
@@ -1257,10 +1448,10 @@ const Game: React.FC = () => {
                 onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#d4c4a8'}
                 onMouseLeave={(e) => (e.target as HTMLElement).style.background = 'transparent'}
               >
-                Take {contextMenu.npc.userData.dropData?.name}
+                Take {contextMenu.npc?.userData.dropData?.name}
               </div>
               <div 
-                onClick={() => handleContextAction('examine', contextMenu.npc)}
+                onClick={() => contextMenu.npc && handleContextAction('examine', contextMenu.npc)}
                 style={{
                   padding: '4px 8px',
                   cursor: 'pointer'
@@ -1274,7 +1465,7 @@ const Game: React.FC = () => {
           ) : contextMenu.npc?.userData.type === 'tree' ? (
             <>
               <div 
-                onClick={() => handleContextAction('chop', contextMenu.npc)}
+                onClick={() => contextMenu.npc && handleContextAction('chop', contextMenu.npc)}
                 style={{
                   padding: '4px 8px',
                   cursor: 'pointer',
@@ -1286,7 +1477,7 @@ const Game: React.FC = () => {
                 Chop Tree
               </div>
               <div 
-                onClick={() => handleContextAction('examine', contextMenu.npc)}
+                onClick={() => contextMenu.npc && handleContextAction('examine', contextMenu.npc)}
                 style={{
                   padding: '4px 8px',
                   cursor: 'pointer'
@@ -1300,7 +1491,7 @@ const Game: React.FC = () => {
           ) : (
             <>
               <div 
-                onClick={() => handleContextAction('talk', contextMenu.npc)}
+                onClick={() => contextMenu.npc && handleContextAction('talk', contextMenu.npc)}
                 style={{
                   padding: '4px 8px',
                   cursor: 'pointer',
@@ -1312,7 +1503,7 @@ const Game: React.FC = () => {
                 Talk
               </div>
               <div 
-                onClick={() => handleContextAction('attack', contextMenu.npc)}
+                onClick={() => contextMenu.npc && handleContextAction('attack', contextMenu.npc)}
                 style={{
                   padding: '4px 8px',
                   cursor: 'pointer',
@@ -1324,7 +1515,7 @@ const Game: React.FC = () => {
                 Attack
               </div>
               <div 
-                onClick={() => handleContextAction('examine', contextMenu.npc)}
+                onClick={() => contextMenu.npc && handleContextAction('examine', contextMenu.npc)}
                 style={{
                   padding: '4px 8px',
                   cursor: 'pointer'
@@ -1340,7 +1531,11 @@ const Game: React.FC = () => {
       )}
       
       {/* RuneScape Classic UI */}
-      <GameInterface />
+      <GameInterface 
+        onDropItem={handleDropItem} 
+        addFloatingText={addFloatingText} 
+        getScreenPosition={(pos) => getScreenPosition(new THREE.Vector3(pos.x, pos.y, pos.z))} 
+      />
       
       {/* Combat UI with floating damage and health bars */}
       <CombatUI 
@@ -1348,15 +1543,60 @@ const Game: React.FC = () => {
         healthBars={healthBars}
         onTextComplete={removeFloatingText}
       />
+      
+      {/* Spell animations */}
+      {spellAnimations.map(animation => (
+        <div 
+          key={animation.id}
+          style={{
+            position: 'absolute',
+            left: animation.x - 25,
+            top: animation.y - 25,
+            width: '50px',
+            height: '50px',
+            pointerEvents: 'none',
+            zIndex: 1500,
+            animation: 'spellCast 1s ease-out forwards'
+          }}
+        >
+          {animation.type === 'wind_strike' && (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              background: 'radial-gradient(circle, rgba(192,255,192,0.8) 0%, rgba(128,255,128,0.6) 30%, rgba(64,192,64,0.4) 60%, transparent 100%)',
+              borderRadius: '50%',
+              border: '2px solid #40ff40',
+              boxShadow: '0 0 20px #40ff40'
+            }} />
+          )}
+        </div>
+      ))}
+      
+      {/* Cursor feedback */}
+      {cursorFeedback.type && (
+        <div style={{
+          position: 'absolute',
+          left: cursorFeedback.x - 8,
+          top: cursorFeedback.y - 8,
+          width: '16px',
+          height: '16px',
+          pointerEvents: 'none',
+          zIndex: 1600,
+          borderRadius: '50%',
+          border: `2px solid ${cursorFeedback.type === 'attack' ? '#ff4040' : '#ffff40'}`,
+          animation: 'cursorPulse 1.6s ease-in-out infinite'
+        }} />
+      )}
       {!useMinimalEngine && (
         <div style={{
           position: 'fixed',
           top: '10px',
-          left: '10px',
+          right: '250px',
           color: 'white',
           background: 'rgba(0,0,0,0.5)',
-          padding: '10px',
-          fontFamily: 'monospace'
+          padding: '8px',
+          fontFamily: 'monospace',
+          fontSize: '10px'
         }}>
           <p>A/D: Rotate camera</p>
           <p>Left-click: Move/Attack</p>
@@ -1379,7 +1619,7 @@ const Game: React.FC = () => {
         </div>
       )}
       
-      {/* CSS for click animation */}
+      {/* CSS for animations */}
       <style>{`
         @keyframes clickPulse {
           0% {
@@ -1389,6 +1629,36 @@ const Game: React.FC = () => {
           100% {
             transform: scale(2);
             opacity: 0;
+          }
+        }
+        
+        @keyframes spellCast {
+          0% {
+            transform: scale(0.2);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.8;
+          }
+          100% {
+            transform: scale(0.8);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes cursorPulse {
+          0% {
+            transform: scale(1);
+            opacity: 0.8;
+          }
+          50% {
+            transform: scale(1.3);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 0.8;
           }
         }
       `}</style>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '../store/gameStore';
+import { useDraggable } from '../hooks/useDraggable';
 import type { AgilityObstacle, AgilityCourse } from '../systems/AgilitySystem';
 import './AgilityPanel.css';
 
@@ -13,6 +14,10 @@ export const AgilityPanel: React.FC<AgilityPanelProps> = ({ onClose }) => {
   const [selectedTab, setSelectedTab] = useState<'obstacles' | 'courses'>('obstacles');
   const [selectedObstacle, setSelectedObstacle] = useState<AgilityObstacle | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<AgilityCourse | null>(null);
+  
+  const draggable = useDraggable({ 
+    initialPosition: { x: 300, y: 140 } 
+  });
 
   // Mock data for demonstration - in real implementation, this would come from AgilitySystem
   const obstacles: AgilityObstacle[] = [
@@ -80,8 +85,15 @@ export const AgilityPanel: React.FC<AgilityPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="agility-panel">
-      <div className="agility-header">
+    <div 
+      ref={draggable.elementRef}
+      className="agility-panel"
+      style={draggable.style}
+    >
+      <div 
+        className="agility-header drag-handle"
+        onMouseDown={draggable.handleMouseDown}
+      >
         <h2>Agility Training</h2>
         <button className="close-button" onClick={onClose}>×</button>
       </div>

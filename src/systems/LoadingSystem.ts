@@ -18,11 +18,11 @@ export interface AssetDefinition {
 }
 
 export class LoadingSystem {
-  private loadingManager: THREE.LoadingManager;
-  private textureLoader: THREE.TextureLoader;
-  private gltfLoader: GLTFLoader;
+  private loadingManager!: THREE.LoadingManager;
+  private textureLoader!: THREE.TextureLoader;
+  private gltfLoader!: GLTFLoader;
   
-  private assets: Map<string, any> = new Map();
+  private assets: Map<string, THREE.Texture | THREE.Group | HTMLAudioElement | Record<string, unknown>> = new Map();
   private assetDefinitions: AssetDefinition[] = [];
   private loadingProgress: LoadingProgress = {
     loaded: 0,
@@ -218,7 +218,7 @@ export class LoadingSystem {
     
     this.loadingProgress.total = criticalAssets.length;
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       let loadedCount = 0;
       
       const onAssetLoaded = () => {
@@ -235,7 +235,7 @@ export class LoadingSystem {
         }
       };
       
-      const onAssetError = (error: any) => {
+      const onAssetError = (error: Error | unknown) => {
         console.warn('Failed to load critical asset:', error);
         onAssetLoaded(); // Continue loading even if one asset fails
       };
@@ -254,7 +254,7 @@ export class LoadingSystem {
     const allAssets = this.assetDefinitions.filter(asset => asset.preload);
     this.loadingProgress.total = allAssets.length;
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       let loadedCount = 0;
       
       const onAssetLoaded = () => {
@@ -271,7 +271,7 @@ export class LoadingSystem {
         }
       };
       
-      const onAssetError = (error: any) => {
+      const onAssetError = (error: Error | unknown) => {
         console.warn('Failed to load asset:', error);
         onAssetLoaded();
       };
@@ -284,9 +284,9 @@ export class LoadingSystem {
     });
   }
 
-  private async loadAsset(asset: AssetDefinition): Promise<any> {
+  private async loadAsset(asset: AssetDefinition): Promise<THREE.Texture | THREE.Group | HTMLAudioElement | Record<string, unknown>> {
     try {
-      let loadedAsset: any;
+      let loadedAsset: THREE.Texture | THREE.Group | HTMLAudioElement | Record<string, unknown>;
       
       switch (asset.type) {
         case 'texture':
@@ -316,7 +316,7 @@ export class LoadingSystem {
   }
 
   private loadTexture(url: string): Promise<THREE.Texture> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.textureLoader.load(
         url,
         resolve,
@@ -337,7 +337,7 @@ export class LoadingSystem {
   }
 
   private loadModel(url: string): Promise<THREE.Group> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.gltfLoader.load(
         url,
         (gltf) => resolve(gltf.scene),
@@ -356,7 +356,7 @@ export class LoadingSystem {
   }
 
   private loadAudio(url: string): Promise<HTMLAudioElement> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const audio = new Audio();
       audio.addEventListener('canplaythrough', () => resolve(audio));
       audio.addEventListener('error', () => {
@@ -369,7 +369,7 @@ export class LoadingSystem {
     });
   }
 
-  private loadData(url: string): Promise<any> {
+  private loadData(url: string): Promise<Record<string, unknown>> {
     return fetch(url)
       .then(response => response.json())
       .catch(() => {
@@ -378,39 +378,45 @@ export class LoadingSystem {
       });
   }
 
-  private createPlaceholder(type: string): any {
+  private createPlaceholder(type: string): THREE.Texture | THREE.Group | HTMLAudioElement | Record<string, unknown> {
     switch (type) {
-      case 'texture':
+      case 'texture': {
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = 64;
         const ctx = canvas.getContext('2d')!;
         ctx.fillStyle = '#FF00FF'; // Magenta to indicate missing texture
         ctx.fillRect(0, 0, 64, 64);
         return new THREE.CanvasTexture(canvas);
-      
-      case 'model':
+      }
+      case 'model': {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshLambertMaterial({ color: 0xFF00FF });
         const mesh = new THREE.Mesh(geometry, material);
         const group = new THREE.Group();
         group.add(mesh);
         return group;
-      
-      case 'audio':
+      }
+      case 'audio': {
         const audio = new Audio();
         audio.volume = 0;
         return audio;
-      
+      }
       case 'data':
         return {};
       
-      default:
-        return null;
+      default: {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 64;
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = '#FF00FF';
+        ctx.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(canvas);
+      }
     }
   }
 
   // Asset retrieval
-  getAsset(id: string): any {
+  getAsset(id: string): THREE.Texture | THREE.Group | HTMLAudioElement | Record<string, unknown> | undefined {
     return this.assets.get(id);
   }
 
@@ -419,9 +425,12 @@ export class LoadingSystem {
   }
 
   // Lazy loading for non-critical assets
-  async loadAssetById(id: string): Promise<any> {
+  async loadAssetById(id: string): Promise<THREE.Texture | THREE.Group | HTMLAudioElement | Record<string, unknown>> {
     if (this.hasAsset(id)) {
-      return this.getAsset(id);
+      const asset = this.getAsset(id);
+      if (asset) {
+        return asset;
+      }
     }
     
     const definition = this.assetDefinitions.find(asset => asset.id === id);
@@ -456,13 +465,15 @@ export class LoadingSystem {
       if (asset instanceof THREE.Texture) {
         asset.dispose();
       } else if (asset instanceof THREE.Object3D) {
-        asset.traverse((child: any) => {
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) {
+        asset.traverse((child: THREE.Object3D) => {
+          if (child instanceof THREE.Mesh && child.geometry) {
+            child.geometry.dispose();
+          }
+          if (child instanceof THREE.Mesh && child.material) {
             if (Array.isArray(child.material)) {
-              child.material.forEach((mat: any) => mat.dispose());
+              child.material.forEach((mat: THREE.Material) => mat.dispose());
             } else {
-              child.material.dispose();
+              (child.material as THREE.Material).dispose();
             }
           }
         });
@@ -472,7 +483,7 @@ export class LoadingSystem {
   }
 
   disposeAll() {
-    this.assets.forEach((asset, id) => {
+    this.assets.forEach((_, id) => {
       this.disposeAsset(id);
     });
     this.assets.clear();

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 interface OreColorConfig {
   name: string;
@@ -130,7 +131,7 @@ export class OreModelLoader {
 
     try {
       console.log('Loading base ore model: ores.glb from resources folder');
-      const gltf = await new Promise<any>((resolve, reject) => {
+      const gltf = await new Promise<GLTF>((resolve, reject) => {
         this.loader.load(
           '/models/resources/ores.glb',
           (gltf) => resolve(gltf),
@@ -141,7 +142,7 @@ export class OreModelLoader {
 
       this.baseModel = gltf.scene;
       console.log('Base ore model loaded successfully');
-      return this.baseModel;
+      return this.baseModel as THREE.Group;
     } catch (error) {
       console.warn('Failed to load ores.glb from resources folder, using fallback geometry:', error);
       return this.createFallbackModel();

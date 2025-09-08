@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { EquipSlot, type InventoryItem } from '../types/inventory';
+import { useDraggable } from '../hooks/useDraggable';
 import './InventoryPanel.css';
 import './EquipmentPanel.css';
+
+interface EquipmentPanelProps {
+  onClose?: () => void;
+}
 
 const slotOrder: EquipSlot[] = [
   EquipSlot.HELMET,
@@ -17,11 +22,15 @@ const slotOrder: EquipSlot[] = [
   EquipSlot.RING
 ];
 
-const EquipmentPanel: React.FC = () => {
+const EquipmentPanel: React.FC<EquipmentPanelProps> = ({ onClose }) => {
   const equipment = useGameStore(state => state.player.equipment);
   const unequipItem = useGameStore(state => state.unequipItem);
   const [hoveredItem, setHoveredItem] = useState<InventoryItem | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  
+  const { handleMouseDown, style, elementRef } = useDraggable({
+    initialPosition: { x: window.innerWidth - 300, y: 150 }
+  });
 
   const handleMouseEnter = (item: InventoryItem, event: React.MouseEvent) => {
     setHoveredItem(item);
@@ -77,9 +86,18 @@ const EquipmentPanel: React.FC = () => {
   };
 
   return (
-    <div className="inventory-panel equipment-panel">
-      <div className="inventory-header">
+    <div 
+      ref={elementRef}
+      className="inventory-panel equipment-panel" 
+      style={style}
+    >
+      <div className="inventory-header drag-handle" onMouseDown={handleMouseDown}>
         <h3>Equipment</h3>
+        {onClose && (
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
+        )}
       </div>
       <div className="equipment-grid">
         {slotOrder.map((slot) => (
@@ -91,9 +109,9 @@ const EquipmentPanel: React.FC = () => {
                 onMouseEnter={(e) => handleMouseEnter(equipment[slot]!, e)}
                 onMouseLeave={handleMouseLeave}
                 onMouseMove={handleMouseMove}
+                title={equipment[slot]?.name}
               >
                 <div className="item-icon">{equipment[slot]?.icon || '📦'}</div>
-                <div className="item-name">{equipment[slot]?.name}</div>
               </div>
             ) : (
               <div className="empty-slot">

@@ -247,8 +247,7 @@ export class MagicSystem {
    */
   public castSpell(
     spellId: string,
-    caster: { level: number; position: THREE.Vector3 },
-    target?: MagicTarget
+    caster: { level: number; position: THREE.Vector3 }
   ): SpellCastResult {
     const spell = this.getSpell(spellId);
     if (!spell) {
@@ -262,7 +261,7 @@ export class MagicSystem {
 
     // Calculate hit chance and damage for combat spells
     if (spell.type === 'combat' && spell.maxHit) {
-      const hitChance = this.calculateMagicHitChance(caster.level, target);
+      const hitChance = this.calculateMagicHitChance(caster.level);
       const hit = Math.random() < hitChance;
       
       if (hit) {
@@ -307,9 +306,9 @@ export class MagicSystem {
   /**
    * Calculate magic hit chance (similar to RSC formula)
    */
-  private calculateMagicHitChance(casterLevel: number, target?: MagicTarget): number {
+  private calculateMagicHitChance(casterLevel: number): number {
     // Base hit chance starts at 50% and increases with level
-    let hitChance = 0.5 + (casterLevel * 0.01);
+    const hitChance = 0.5 + (casterLevel * 0.01);
     
     // Future: Could incorporate target's magic defense here
     // const targetDefense = target?.magicDefense || 0;

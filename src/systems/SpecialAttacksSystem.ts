@@ -433,7 +433,7 @@ export class SpecialAttacksSystem {
 
       // Apply special effects
       if (attack.effect) {
-        effectMessage = this.applySpecialEffect(attack.effect, attacker, defender);
+        effectMessage = this.applySpecialEffect(attack.effect);
       }
     }
 
@@ -465,9 +465,7 @@ export class SpecialAttacksSystem {
    * Apply special effect and return description
    */
   private applySpecialEffect(
-    effect: SpecialEffect,
-    _attacker: any,
-    _defender: any
+    effect: SpecialEffect
   ): string {
     if (Math.random() > (effect.chance || 1.0)) {
       return ''; // Effect didn't trigger

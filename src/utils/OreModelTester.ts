@@ -112,6 +112,12 @@ export class OreModelTester {
 }
 
 // Make available globally for browser console testing
-(window as any).OreModelTester = OreModelTester;
+declare global {
+  interface Window {
+    OreModelTester: typeof OreModelTester;
+  }
+}
+
+(window as Window).OreModelTester = OreModelTester;
 
 console.log('🔧 Ore Model Tester loaded! Use OreModelTester.testAllOreModels() to test the system.');

@@ -331,11 +331,8 @@ export class FiremakingSystem {
    */
   public cookFood(
     fireId: string,
-    rawFoodId: string,
-    playerLevel: number,
-    cookingLevel: number,
-    addExperience: (skill: string, xp: number) => { newLevel?: number }
-  ): { success: boolean; cookedItem?: any; burnedItem?: any; message: string } {
+    rawFoodId: string
+  ): { success: boolean; cookedItem?: string; burnedItem?: string; message: string } {
     const fire = this.activeFires.get(fireId);
     if (!fire) {
       return {

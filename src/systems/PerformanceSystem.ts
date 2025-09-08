@@ -340,8 +340,11 @@ export class PerformanceSystem {
         material instanceof THREE.MeshStandardMaterial) {
       if (material.map) textures.add(material.map);
       if (material.normalMap) textures.add(material.normalMap);
-      if (material.roughnessMap) textures.add(material.roughnessMap);
-      if (material.metalnessMap) textures.add(material.metalnessMap);
+      // Only check for these properties on materials that support them
+      if (material instanceof THREE.MeshStandardMaterial) {
+        if (material.roughnessMap) textures.add(material.roughnessMap);
+        if (material.metalnessMap) textures.add(material.metalnessMap);
+      }
     }
   }
 

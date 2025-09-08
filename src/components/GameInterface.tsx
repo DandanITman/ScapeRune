@@ -14,10 +14,17 @@ import { ThievingPanel } from './ThievingPanel';
 import { HerblorePanel } from './HerblorePanel';
 import { FiremakingPanel } from './FiremakingPanel';
 import { QuestJournal } from './ui/QuestJournal';
+import { SettingsPanel } from './SettingsPanel';
 import './GameInterface.css';
 
-const GameInterface: React.FC = () => {
-  const { player, currentLocation, setSelectedSpell, setSelectedRangedWeapon, setSelectedAmmo } = useGameStore();
+interface GameInterfaceProps {
+  onDropItem?: (slotIndex: number, quantity: number) => void;
+  addFloatingText?: (text: string, type: 'damage' | 'miss' | 'xp' | 'heal', screenX: number, screenY: number) => void;
+  getScreenPosition?: (worldPosition: { x: number; y: number; z: number }) => { x: number; y: number };
+}
+
+const GameInterface: React.FC<GameInterfaceProps> = ({ onDropItem, addFloatingText, getScreenPosition }) => {
+  const { player, currentLocation, chatMessages, setSelectedSpell, setSelectedRangedWeapon, setSelectedAmmo } = useGameStore();
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
   const togglePanel = (panelName: string) => {
@@ -39,6 +46,23 @@ const GameInterface: React.FC = () => {
     setActivePanel(null);
   };
 
+  const handleSkillClick = (skillName: string) => {
+    // Map skill names to their panel names
+    const skillPanelMap: Record<string, string> = {
+      'firemaking': 'firemaking',
+      'herblaw': 'herblore',
+      'agility': 'agility',
+      'thieving': 'thieving',
+      'smithing': 'smithing',
+      'ranged': 'ranged'
+    };
+    
+    const panelName = skillPanelMap[skillName];
+    if (panelName) {
+      setActivePanel(panelName);
+    }
+  };
+
   return (
     <div className="game-interface">
       {/* Main Menu Bar */}
@@ -46,89 +70,67 @@ const GameInterface: React.FC = () => {
         <button 
           className={`menu-button ${activePanel === 'stats' ? 'active' : ''}`}
           onClick={() => togglePanel('stats')}
+          title="Stats"
         >
-          Stats
+          📊
         </button>
         <button 
           className={`menu-button ${activePanel === 'inventory' ? 'active' : ''}`}
           onClick={() => togglePanel('inventory')}
+          title="Inventory"
         >
-          Inventory
+          🎒
         </button>
         <button 
           className={`menu-button ${activePanel === 'combat' ? 'active' : ''}`}
           onClick={() => togglePanel('combat')}
+          title="Combat"
         >
-          Combat
+          ⚔️
         </button>
         <button 
           className={`menu-button ${activePanel === 'equipment' ? 'active' : ''}`}
           onClick={() => togglePanel('equipment')}
+          title="Equipment"
         >
-          Equipment
-        </button>
-        <button 
-          className={`menu-button ${activePanel === 'smithing' ? 'active' : ''}`}
-          onClick={() => togglePanel('smithing')}
-        >
-          Smithing
+          👕
         </button>
         <button 
           className={`menu-button ${activePanel === 'spells' ? 'active' : ''}`}
           onClick={() => togglePanel('spells')}
+          title="Spells"
         >
-          Spells
-        </button>
-        <button 
-          className={`menu-button ${activePanel === 'ranged' ? 'active' : ''}`}
-          onClick={() => togglePanel('ranged')}
-        >
-          Ranged
+          ✨
         </button>
         <button 
           className={`menu-button ${activePanel === 'prayer' ? 'active' : ''}`}
           onClick={() => togglePanel('prayer')}
+          title="Prayer"
         >
-          Prayer
+          🙏
         </button>
         <button 
           className={`menu-button ${activePanel === 'specials' ? 'active' : ''}`}
           onClick={() => togglePanel('specials')}
+          title="Special Attacks"
         >
-          Special Attacks
+          💥
         </button>
         <button 
           className={`menu-button ${activePanel === 'quests' ? 'active' : ''}`}
           onClick={() => togglePanel('quests')}
+          title="Quests"
         >
-          Quests
+          📜
         </button>
+        <button className="menu-button" title="Friends">👥</button>
         <button 
-          className={`menu-button ${activePanel === 'agility' ? 'active' : ''}`}
-          onClick={() => togglePanel('agility')}
+          className={`menu-button ${activePanel === 'settings' ? 'active' : ''}`}
+          onClick={() => togglePanel('settings')}
+          title="Options"
         >
-          Agility
+          ⚙️
         </button>
-        <button 
-          className={`menu-button ${activePanel === 'thieving' ? 'active' : ''}`}
-          onClick={() => togglePanel('thieving')}
-        >
-          Thieving
-        </button>
-        <button 
-          className={`menu-button ${activePanel === 'herblore' ? 'active' : ''}`}
-          onClick={() => togglePanel('herblore')}
-        >
-          Herblore
-        </button>
-        <button 
-          className={`menu-button ${activePanel === 'firemaking' ? 'active' : ''}`}
-          onClick={() => togglePanel('firemaking')}
-        >
-          Firemaking
-        </button>
-        <button className="menu-button">Friends</button>
-        <button className="menu-button">Options</button>
       </div>
 
       {/* Player Info */}
@@ -147,16 +149,11 @@ const GameInterface: React.FC = () => {
         </div>
       </div>
 
-      {/* Movement Controls Help */}
-      <div className="controls-help">
-        <p>Use WASD or Arrow Keys to move</p>
-      </div>
-
       {/* Panels */}
-      {activePanel === 'stats' && <StatsPanel />}
-      {activePanel === 'inventory' && <InventoryPanel />}
-      {activePanel === 'combat' && <CombatStylePanel />}
-      {activePanel === 'equipment' && <EquipmentPanel />}
+      {activePanel === 'stats' && <StatsPanel onSkillClick={handleSkillClick} onClose={() => setActivePanel(null)} />}
+      {activePanel === 'inventory' && <InventoryPanel onClose={() => setActivePanel(null)} onDropItem={onDropItem} addFloatingText={addFloatingText} getScreenPosition={getScreenPosition} />}
+      {activePanel === 'combat' && <CombatStylePanel onClose={() => setActivePanel(null)} />}
+      {activePanel === 'equipment' && <EquipmentPanel onClose={() => setActivePanel(null)} />}
       {activePanel === 'smithing' && <SmithingPanel />}
       {activePanel === 'spells' && (
         <SpellbookPanel 
@@ -210,12 +207,20 @@ const GameInterface: React.FC = () => {
           onClose={() => setActivePanel(null)}
         />
       )}
+      {activePanel === 'settings' && (
+        <SettingsPanel
+          onClose={() => setActivePanel(null)}
+        />
+      )}
 
       {/* Chat Area */}
       <div className="chat-area">
         <div className="chat-messages">
-          <div className="chat-message">Welcome to RuneScape Classic!</div>
-          <div className="chat-message">Use the buttons above to access your stats and inventory.</div>
+          {chatMessages.map((message) => (
+            <div key={message.id} className="chat-message">
+              {message.text}
+            </div>
+          ))}
         </div>
         <input 
           type="text" 

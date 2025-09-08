@@ -435,8 +435,7 @@ export class HerbloreSystem {
    * Use a potion for its effect
    */
   public usePotion(
-    potionId: string,
-    currentStats: any
+    potionId: string
   ): { success: boolean; effect?: PotionEffect; message: string } {
     const recipe = Array.from(this.recipes.values()).find(r => r.resultPotionId === potionId);
     

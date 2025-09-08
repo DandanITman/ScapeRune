@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { NPCData } from './NPCSystem';
 
 // Town/Area interfaces
 export interface Building {
@@ -16,7 +17,7 @@ export interface Town {
   id: string;
   name: string;
   buildings: Building[];
-  npcs: any[]; // Will be populated with NPCs
+  npcs: NPCData[]; // Will be populated with NPCs
   centerPosition: THREE.Vector3;
   boundaries: {
     minX: number;

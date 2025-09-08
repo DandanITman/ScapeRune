@@ -186,7 +186,7 @@ export class AgilitySystem {
         geometry = new THREE.BoxGeometry(5, 2, 0.5);
         material = new THREE.MeshLambertMaterial({ color: 0x808080 }); // Gray stone
         break;
-      case 'gap':
+      case 'gap': {
         // Create a visual indicator for the gap (two platforms)
         const group = new THREE.Group();
         const platform1 = new THREE.Mesh(
@@ -206,6 +206,7 @@ export class AgilitySystem {
         group.userData = { type: 'agility_obstacle', obstacleId: obstacle.id, name: obstacle.name };
         this.scene.add(group);
         return;
+      }
       case 'pipe':
         geometry = new THREE.CylinderGeometry(0.8, 0.8, 4, 8);
         material = new THREE.MeshLambertMaterial({ color: 0x696969 }); // Dark gray

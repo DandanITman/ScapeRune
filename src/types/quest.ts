@@ -73,7 +73,7 @@ export interface PlayerQuestProgress {
   completed: boolean; // convenience property for quick checks
   startedAt?: Date;
   completedAt?: Date;
-  variables?: Record<string, any>; // For quest-specific variables
+  variables?: Record<string, unknown>; // For quest-specific variables
 }
 
 export interface QuestRewardState {

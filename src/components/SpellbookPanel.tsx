@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useDraggable } from '../hooks/useDraggable';
 import { MagicSystem, type MagicSpell } from '../systems/MagicSystem';
 import './SpellbookPanel.css';
 
@@ -18,9 +19,18 @@ const SpellbookPanel: React.FC<SpellbookPanelProps> = ({
   const [selectedSpell, setSelectedSpell] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'combat' | 'utility'>('combat');
   
+  const draggable = useDraggable({ 
+    initialPosition: { x: 400, y: 150 } // Center-left position
+  });
+  
   const magicSystem = new MagicSystem();
   const playerMagicLevel = player.stats.magic;
   const spellCategories = magicSystem.getSpellCategories();
+  
+  console.log('SpellbookPanel - Player magic level:', playerMagicLevel);
+  console.log('SpellbookPanel - Combat spells:', spellCategories.combat.length);
+  console.log('SpellbookPanel - Utility spells:', spellCategories.utility.length);
+  console.log('SpellbookPanel - All combat spells:', spellCategories.combat);
 
   if (!isOpen) return null;
 
@@ -50,106 +60,97 @@ const SpellbookPanel: React.FC<SpellbookPanelProps> = ({
   };
 
   const handleSpellClick = (spell: MagicSpell) => {
-    if (canCastSpell(spell)) {
-      setSelectedSpell(spell.id);
-      onCastSpell(spell.id);
-    }
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (canCastSpell(spell)) {
+        setSelectedSpell(spell.id);
+        onCastSpell(spell.id);
+      }
+    };
   };
 
-  const renderSpellList = (spells: MagicSpell[]) => {
+  const renderSpellGrid = (spells: MagicSpell[]) => {
+    console.log('Rendering spells:', spells.length, 'Player magic level:', playerMagicLevel);
+    
     return spells.map(spell => {
       const castable = canCastSpell(spell);
       const isSelected = selectedSpell === spell.id;
       
+      console.log(`Spell ${spell.name}: level ${spell.level}, castable: ${castable}`);
+      
       return (
         <div
           key={spell.id}
-          className={`spell-item ${castable ? 'castable' : 'not-castable'} ${isSelected ? 'selected' : ''}`}
-          onClick={() => handleSpellClick(spell)}
+          className={`spell-slot ${castable ? 'castable' : 'not-castable'} ${isSelected ? 'selected' : ''}`}
+          onClick={handleSpellClick(spell)}
+          title={`${spell.name} (Lvl ${spell.level})\n${spell.description}\n${getRuneRequirementText(spell)}`}
         >
-          <div className="spell-header">
-            <span className="spell-name">{spell.name}</span>
-            <span className="spell-level">Lvl {spell.level}</span>
-          </div>
-          <div className="spell-description">{spell.description}</div>
-          <div className="spell-runes">
-            <span className="rune-text">{getRuneRequirementText(spell)}</span>
-          </div>
-          {spell.type === 'combat' && spell.maxHit && (
-            <div className="spell-damage">Max hit: {spell.maxHit}</div>
-          )}
-          <div className="spell-xp">XP: {spell.experience}</div>
+          <div className="spell-icon">{spell.name.charAt(0)}</div>
+          <div className="spell-level">{spell.level}</div>
         </div>
       );
     });
   };
 
   return (
-    <div className="spellbook-overlay">
-      <div className="spellbook-panel">
-        <div className="spellbook-header">
-          <h2>Magic Spellbook</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+    <div 
+      className="spellbook-panel compact"
+      style={{
+        position: 'absolute',
+        left: `${draggable.position.x}px`,
+        top: `${draggable.position.y}px`,
+        zIndex: 1000
+      }}
+    >
+      <div 
+        className="spellbook-header"
+        onMouseDown={draggable.handleMouseDown}
+      >
+        <span className="spellbook-title">Magic ({playerMagicLevel})</span>
+        <button 
+          className="close-button" 
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+        >
+          ×
+        </button>
+      </div>
+      
+      <div className="spellbook-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'combat' ? 'active' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveTab('combat');
+          }}
+        >
+          Combat
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'utility' ? 'active' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveTab('utility');
+          }}
+        >
+          Utility
+        </button>
+      </div>
+
+      <div className="spellbook-content">
+        <div className="spell-grid">
+          {activeTab === 'combat' && renderSpellGrid(spellCategories.combat)}
+          {activeTab === 'utility' && renderSpellGrid(spellCategories.utility)}
         </div>
         
-        <div className="magic-level">
-          Magic Level: {playerMagicLevel}
-        </div>
-
-        <div className="spellbook-tabs">
-          <button 
-            className={`tab-button ${activeTab === 'combat' ? 'active' : ''}`}
-            onClick={() => setActiveTab('combat')}
-          >
-            Combat Spells
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'utility' ? 'active' : ''}`}
-            onClick={() => setActiveTab('utility')}
-          >
-            Utility Spells
-          </button>
-        </div>
-
-        <div className="spellbook-content">
-          {activeTab === 'combat' && (
-            <div className="spell-category">
-              <h3>Combat Spells</h3>
-              <div className="spell-list">
-                {renderSpellList(spellCategories.combat.filter(spell => spell.level <= playerMagicLevel))}
-              </div>
-              {spellCategories.combat.filter(spell => spell.level > playerMagicLevel).length > 0 && (
-                <>
-                  <h4>Locked Spells</h4>
-                  <div className="spell-list locked">
-                    {renderSpellList(spellCategories.combat.filter(spell => spell.level > playerMagicLevel))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'utility' && (
-            <div className="spell-category">
-              <h3>Utility Spells</h3>
-              <div className="spell-list">
-                {renderSpellList(spellCategories.utility.filter(spell => spell.level <= playerMagicLevel))}
-              </div>
-              {spellCategories.utility.filter(spell => spell.level > playerMagicLevel).length > 0 && (
-                <>
-                  <h4>Locked Spells</h4>
-                  <div className="spell-list locked">
-                    {renderSpellList(spellCategories.utility.filter(spell => spell.level > playerMagicLevel))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="spellbook-instructions">
-          <p>Click on a spell to select it for casting. You need the required runes and magic level.</p>
-          <p>Combat spells can be cast on enemies. Utility spells have various effects.</p>
+        {/* Debug info */}
+        <div style={{ color: '#FFD700', fontSize: '10px', marginTop: '8px', padding: '4px' }}>
+          Combat: {spellCategories.combat.length} | Utility: {spellCategories.utility.length} | 
+          Lvl: {playerMagicLevel} | Tab: {activeTab}
         </div>
       </div>
     </div>

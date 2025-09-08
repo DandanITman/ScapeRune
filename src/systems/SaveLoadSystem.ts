@@ -1,6 +1,7 @@
 import { useGameStore } from '../store/gameStore';
 import type { PlayerStats, PlayerExperience } from '../store/gameStore';
 import type { InventorySlot, Equipment } from '../types/inventory';
+import type { PlayerQuestProgress } from '../types/quest';
 
 export interface SavedGameData {
   version: string;
@@ -16,7 +17,7 @@ export interface SavedGameData {
   };
   inventory: InventorySlot[];
   equipment: Equipment;
-  questProgress: Record<string, any>;
+  questProgress: Record<string, PlayerQuestProgress>;
   gameProgress: {
     tutorialCompleted: boolean;
     unlockedAreas: string[];
@@ -312,9 +313,9 @@ export class SaveLoadSystem {
       },
       inventory: Array(30).fill(null),
       equipment: {
-        weapon: null, shield: null, helmet: null, body: null,
-        legs: null, gloves: null, boots: null, cape: null,
-        amulet: null, ring: null, ammo: null
+        weapon: undefined, shield: undefined, helmet: undefined, body: undefined,
+        legs: undefined, gloves: undefined, boots: undefined, cape: undefined,
+        amulet: undefined, ring: undefined
       },
       questProgress: {},
       gameProgress: {

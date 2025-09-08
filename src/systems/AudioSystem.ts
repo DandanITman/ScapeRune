@@ -160,8 +160,9 @@ export class AudioSystem {
 
     let audio = this.sounds.get(soundId);
     if (!audio) {
-      audio = await this.loadSound(soundId);
-      if (!audio) return;
+      const loadedAudio = await this.loadSound(soundId);
+      if (!loadedAudio) return;
+      audio = loadedAudio;
     }
 
     const soundDef = this.soundLibrary.find(s => s.id === soundId);

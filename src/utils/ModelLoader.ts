@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { createChickenModel, createRatModel } from './AnimalModelUtils';
 
 export interface ModelLoadOptions {
   scale?: number;
@@ -136,15 +137,34 @@ export class ModelLoader {
       case 'goblin':
         // Medium size, humanoid
         return new THREE.CylinderGeometry(0.3, 0.3, 1.2);
-      case 'cow':
-        // Larger, wider body
-        return new THREE.BoxGeometry(1.2, 0.8, 0.6);
+      case 'cow': {
+        // Create a more cow-like body using horizontal cylinder
+        const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.5, 1.2, 8);
+        bodyGeometry.rotateZ(Math.PI / 2); // Make it horizontal
+        return bodyGeometry;
+      }
       case 'chicken':
         // Small, compact
         return new THREE.CylinderGeometry(0.2, 0.25, 0.6);
       default:
         // Generic humanoid
         return new THREE.CylinderGeometry(0.3, 0.3, 1.2);
+    }
+  }
+
+  /**
+   * Get enhanced monster model for better appearance
+   * @param monsterName - Name of the monster
+   * @returns Enhanced THREE.Group model for specific animals, null for others
+   */
+  getEnhancedMonsterModel(monsterName: string): THREE.Group | null {
+    switch (monsterName.toLowerCase()) {
+      case 'chicken':
+        return createChickenModel();
+      case 'rat':
+        return createRatModel();
+      default:
+        return null;
     }
   }
 

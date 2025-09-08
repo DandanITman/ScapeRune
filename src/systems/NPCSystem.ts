@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createHumanCharacterModel } from '../utils/CharacterModelUtils';
 
 // Dialogue interfaces
 export interface DialogueOption {
@@ -204,53 +205,45 @@ export class NPCSystem {
    * Create NPC mesh
    */
   public createNPCMesh(npcData: NPCData): THREE.Group {
-    const npcGroup = new THREE.Group();
+    // Define clothing based on NPC type
+    let clothing = {};
     
-    // Body
-    const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5);
-    const bodyMaterial = new THREE.MeshLambertMaterial({ color: npcData.color });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.position.y = 0.75;
-    body.castShadow = true;
-    npcGroup.add(body);
-    
-    // Head
-    const headGeometry = new THREE.SphereGeometry(0.25);
-    const headMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBC4 });
-    const head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.y = 1.75;
-    head.castShadow = true;
-    npcGroup.add(head);
-
-    // Different accessories based on NPC type
     switch (npcData.type) {
       case 'banker':
-        // Add hat
-        const hatGeometry = new THREE.CylinderGeometry(0.15, 0.25, 0.3);
-        const hatMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
-        const hat = new THREE.Mesh(hatGeometry, hatMaterial);
-        hat.position.y = 2.1;
-        npcGroup.add(hat);
+        clothing = {
+          shirt: { color: 0x2F4F4F },
+          pants: { color: 0x000000 },
+          hat: { color: 0x000000, type: 'hat' as const }
+        };
         break;
-        
       case 'merchant':
-        // Add apron
-        const apronGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.1);
-        const apronMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
-        const apron = new THREE.Mesh(apronGeometry, apronMaterial);
-        apron.position.set(0, 0.75, 0.35);
-        npcGroup.add(apron);
+        clothing = {
+          shirt: { color: npcData.color },
+          pants: { color: 0x8B4513 },
+          accessories: [{ type: 'apron' as const, color: 0xFFFFFF }]
+        };
         break;
-        
       case 'quest_giver':
-        // Add crown
-        const crownGeometry = new THREE.CylinderGeometry(0.3, 0.25, 0.2);
-        const crownMaterial = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
-        const crown = new THREE.Mesh(crownGeometry, crownMaterial);
-        crown.position.y = 2.15;
-        npcGroup.add(crown);
+        clothing = {
+          shirt: { color: 0x4B0082 },
+          pants: { color: 0x8B4513 },
+          hat: { color: 0xFFD700, type: 'crown' as const }
+        };
         break;
+      default:
+        clothing = {
+          shirt: { color: npcData.color },
+          pants: { color: 0x8B4513 }
+        };
     }
+
+    // Create human character model for NPC
+    const npcGroup = createHumanCharacterModel({
+      bodyColor: npcData.color,
+      skinColor: 0xFFDBC4,
+      scale: 0.9, // Slightly smaller than player
+      clothing
+    });
 
     // Store NPC data
     npcGroup.userData = {

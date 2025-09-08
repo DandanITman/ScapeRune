@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useDraggable } from '../hooks/useDraggable';
 import { RangedSystem, type RangedWeapon, type Ammunition } from '../systems/RangedSystem';
 import './RangedWeaponPanel.css';
 
@@ -17,10 +18,13 @@ const RangedWeaponPanel: React.FC<RangedWeaponPanelProps> = ({
   const { player, selectedRangedWeapon, selectedAmmo, setSelectedRangedWeapon, setSelectedAmmo } = useGameStore();
   const [activeTab, setActiveTab] = useState<'shortbow' | 'longbow' | 'crossbow'>('shortbow');
   
+  const draggable = useDraggable({ 
+    initialPosition: { x: 400, y: 100 } 
+  });
+  
   const rangedSystem = new RangedSystem();
   const playerRangedLevel = player.stats.ranged;
   const weapons = rangedSystem.getWeapons();
-  const ammunition = rangedSystem.getAmmunition();
 
   if (!isOpen) return null;
 
@@ -75,8 +79,15 @@ const RangedWeaponPanel: React.FC<RangedWeaponPanelProps> = ({
   };
 
   return (
-    <div className="ranged-weapon-panel">
-      <div className="panel-header">
+    <div 
+      ref={draggable.elementRef}
+      className="ranged-weapon-panel"
+      style={draggable.style}
+    >
+      <div 
+        className="panel-header drag-handle"
+        onMouseDown={draggable.handleMouseDown}
+      >
         <h3>🏹 Ranged Weapons</h3>
         <button className="close-button" onClick={onClose}>×</button>
       </div>

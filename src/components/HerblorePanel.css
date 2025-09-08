@@ -1,4 +1,5 @@
 .herblore-panel {
+  position: absolute;
   width: 600px;
   height: 500px;
   background: linear-gradient(135deg, #4a5d2a 0%, #3a4d1a 100%);
@@ -10,6 +11,7 @@
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
+  z-index: 10;
 }
 
 .herblore-header {
@@ -20,6 +22,12 @@
   background: rgba(74, 93, 42, 0.8);
   border-bottom: 2px solid #6a7d4a;
   border-radius: 10px 10px 0 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.herblore-header:active {
+  cursor: grabbing;
 }
 
 .herblore-header h2 {

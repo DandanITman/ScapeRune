@@ -1,6 +1,7 @@
 .agility-panel {
-  width: 600px;
-  height: 500px;
+  position: absolute;
+  width: 450px;
+  height: 400px;
   background: linear-gradient(135deg, #2a4c3e 0%, #1e3329 100%);
   border: 2px solid #4a6b5c;
   border-radius: 12px;
@@ -10,16 +11,31 @@
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
+  z-index: 1001;
+  pointer-events: all;
 }
 
 .agility-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  padding: 10px 15px;
   background: rgba(42, 76, 62, 0.8);
   border-bottom: 2px solid #4a6b5c;
   border-radius: 10px 10px 0 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.agility-header:active {
+  cursor: grabbing;
+}
+
+.agility-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #32cd32;
+  text-shadow: 0 0 10px rgba(50, 205, 50, 0.5);
 }
 
 .agility-header h2 {
@@ -57,25 +73,25 @@
   border-bottom: 1px solid #4a6b5c;
 }
 
-.tab {
+.agility-tabs .tab {
   flex: 1;
-  padding: 12px 20px;
+  padding: 8px 15px;
   background: transparent;
   border: none;
   color: #b8c8b8;
   cursor: pointer;
-  font-size: 1em;
+  font-size: 0.9em;
   font-weight: 500;
   transition: all 0.3s ease;
   border-bottom: 3px solid transparent;
 }
 
-.tab:hover {
+.agility-tabs .tab:hover {
   background: rgba(74, 107, 92, 0.3);
   color: #d8e8d8;
 }
 
-.tab.active {
+.agility-tabs .tab.active {
   background: rgba(74, 107, 92, 0.5);
   color: #a8d8a8;
   border-bottom-color: #6ba06b;
@@ -85,6 +101,7 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  padding: 8px;
 }
 
 .obstacles-tab,
@@ -97,16 +114,16 @@
 .obstacles-list,
 .courses-list {
   flex: 1;
-  padding: 15px;
+  padding: 10px;
   overflow-y: auto;
   border-right: 1px solid #4a6b5c;
 }
 
 .obstacles-list h3,
 .courses-list h3 {
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
   color: #a8d8a8;
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: 600;
 }
 

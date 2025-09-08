@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useDraggable } from '../hooks/useDraggable';
 import type { ThievingTarget } from '../systems/ThievingSystem';
 import './ThievingPanel.css';
 
@@ -11,6 +12,10 @@ export const ThievingPanel: React.FC<ThievingPanelProps> = ({ onClose }) => {
   const { player } = useGameStore();
   const [selectedTab, setSelectedTab] = useState<'npcs' | 'stalls' | 'chests'>('npcs');
   const [selectedTarget, setSelectedTarget] = useState<ThievingTarget | null>(null);
+  
+  const draggable = useDraggable({ 
+    initialPosition: { x: 350, y: 160 } 
+  });
 
   // Mock data for demonstration - in real implementation, this would come from ThievingSystem
   const npcTargets: ThievingTarget[] = [
@@ -160,8 +165,15 @@ export const ThievingPanel: React.FC<ThievingPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="thieving-panel">
-      <div className="thieving-header">
+    <div 
+      ref={draggable.elementRef}
+      className="thieving-panel"
+      style={draggable.style}
+    >
+      <div 
+        className="thieving-header drag-handle"
+        onMouseDown={draggable.handleMouseDown}
+      >
         <h2>Thieving</h2>
         <button className="close-button" onClick={onClose}>×</button>
       </div>

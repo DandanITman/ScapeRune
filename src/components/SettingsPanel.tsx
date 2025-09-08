@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { SaveLoadSystem } from '../systems/SaveLoadSystem';
+import { useSettingsStore } from '../store/settingsStore';
+import { useDraggable } from '../hooks/useDraggable';
 import './SettingsPanel.css';
 
 interface SettingsPanelProps {
@@ -11,6 +13,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [saveInfo, setSaveInfo] = useState(() => SaveLoadSystem.getSaveInfo());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Settings store
+  const {
+    graphics,
+    audio,
+    game,
+    updateGraphics,
+    updateAudio,
+    updateGame,
+    resetToDefaults
+  } = useSettingsStore();
+  
+  // Draggable functionality
+  const { elementRef, handleMouseDown, style } = useDraggable({
+    initialPosition: { x: window.innerWidth / 2 - 300, y: window.innerHeight / 2 - 250 }
+  });
 
   const formatTimestamp = (timestamp: number): string => {
     return new Date(timestamp).toLocaleString();
@@ -92,8 +110,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="settings-panel">
-      <div className="settings-header">
+    <div ref={elementRef} className="settings-panel" style={style}>
+      <div className="settings-header" onMouseDown={handleMouseDown}>
         <h2>Settings</h2>
         <button className="close-btn" onClick={onClose}>✕</button>
       </div>
@@ -132,7 +150,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             
             <div className="setting-group">
               <label>
-                <input type="checkbox" defaultChecked />
+                <input 
+                  type="checkbox" 
+                  checked={game.showTutorialHints}
+                  onChange={(e) => updateGame({ showTutorialHints: e.target.checked })}
+                />
                 Show Tutorial Hints
               </label>
               <p className="setting-description">Display helpful tips and tutorials for new players</p>
@@ -140,7 +162,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
             <div className="setting-group">
               <label>
-                <input type="checkbox" defaultChecked />
+                <input 
+                  type="checkbox" 
+                  checked={game.autoSave}
+                  onChange={(e) => updateGame({ autoSave: e.target.checked })}
+                />
                 Auto-Save
               </label>
               <p className="setting-description">Automatically save your progress every 5 minutes</p>
@@ -148,7 +174,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
             <div className="setting-group">
               <label>
-                <input type="checkbox" />
+                <input 
+                  type="checkbox" 
+                  checked={game.confirmActions}
+                  onChange={(e) => updateGame({ confirmActions: e.target.checked })}
+                />
                 Confirm Actions
               </label>
               <p className="setting-description">Ask for confirmation before important actions</p>
@@ -156,10 +186,26 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
             <div className="setting-group">
               <label>
-                <input type="checkbox" defaultChecked />
+                <input 
+                  type="checkbox" 
+                  checked={game.showExperienceDrops}
+                  onChange={(e) => updateGame({ showExperienceDrops: e.target.checked })}
+                />
                 Show Experience Drops
               </label>
               <p className="setting-description">Display floating XP notifications when gaining experience</p>
+            </div>
+            
+            <div className="setting-group">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={game.showDamageNumbers}
+                  onChange={(e) => updateGame({ showDamageNumbers: e.target.checked })}
+                />
+                Show Damage Numbers
+              </label>
+              <p className="setting-description">Display damage numbers during combat</p>
             </div>
           </div>
         )}
@@ -170,7 +216,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             
             <div className="setting-group">
               <label>Graphics Quality:</label>
-              <select defaultValue="medium">
+              <select 
+                value={graphics.quality}
+                onChange={(e) => updateGraphics({ quality: e.target.value as 'low' | 'medium' | 'high' })}
+              >
                 <option value="low">Low (Better Performance)</option>
                 <option value="medium">Medium (Balanced)</option>
                 <option value="high">High (Better Quality)</option>
@@ -180,7 +229,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
             <div className="setting-group">
               <label>
-                <input type="checkbox" defaultChecked />
+                <input 
+                  type="checkbox" 
+                  checked={graphics.shadows}
+                  onChange={(e) => updateGraphics({ shadows: e.target.checked })}
+                />
                 Enable Shadows
               </label>
               <p className="setting-description">Render shadows for better visual depth</p>
@@ -188,7 +241,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
             <div className="setting-group">
               <label>
-                <input type="checkbox" defaultChecked />
+                <input 
+                  type="checkbox" 
+                  checked={graphics.smoothCamera}
+                  onChange={(e) => updateGraphics({ smoothCamera: e.target.checked })}
+                />
                 Smooth Camera
               </label>
               <p className="setting-description">Enable smooth camera transitions</p>
@@ -196,10 +253,38 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
             <div className="setting-group">
               <label>
-                <input type="checkbox" />
+                <input 
+                  type="checkbox" 
+                  checked={graphics.vsync}
+                  onChange={(e) => updateGraphics({ vsync: e.target.checked })}
+                />
                 V-Sync
               </label>
               <p className="setting-description">Synchronize frame rate with display</p>
+            </div>
+
+            <div className="setting-group">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={graphics.particles}
+                  onChange={(e) => updateGraphics({ particles: e.target.checked })}
+                />
+                Particle Effects
+              </label>
+              <p className="setting-description">Enable visual particle effects</p>
+            </div>
+
+            <div className="setting-group">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={graphics.antiAliasing}
+                  onChange={(e) => updateGraphics({ antiAliasing: e.target.checked })}
+                />
+                Anti-Aliasing
+              </label>
+              <p className="setting-description">Smooth jagged edges for better visual quality</p>
             </div>
           </div>
         )}
@@ -210,7 +295,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             
             <div className="setting-group">
               <label>
-                <input type="checkbox" defaultChecked />
+                <input 
+                  type="checkbox" 
+                  checked={audio.enabled}
+                  onChange={(e) => updateAudio({ enabled: e.target.checked })}
+                />
                 Enable Sound
               </label>
               <p className="setting-description">Turn all game audio on/off</p>
@@ -218,24 +307,53 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
             <div className="setting-group">
               <label>Music Volume:</label>
-              <input type="range" min="0" max="100" defaultValue="50" />
-              <span>50%</span>
+              <div className="volume-control">
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={audio.musicVolume}
+                  onChange={(e) => updateAudio({ musicVolume: parseInt(e.target.value) })}
+                />
+                <span>{audio.musicVolume}%</span>
+              </div>
               <p className="setting-description">Background music volume</p>
             </div>
 
             <div className="setting-group">
               <label>Sound Effects:</label>
-              <input type="range" min="0" max="100" defaultValue="75" />
-              <span>75%</span>
+              <div className="volume-control">
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={audio.soundEffectsVolume}
+                  onChange={(e) => updateAudio({ soundEffectsVolume: parseInt(e.target.value) })}
+                />
+                <span>{audio.soundEffectsVolume}%</span>
+              </div>
               <p className="setting-description">Game sound effects volume</p>
             </div>
 
             <div className="setting-group">
               <label>
-                <input type="checkbox" />
+                <input 
+                  type="checkbox" 
+                  checked={audio.muteWhenUnfocused}
+                  onChange={(e) => updateAudio({ muteWhenUnfocused: e.target.checked })}
+                />
                 Mute When Unfocused
               </label>
               <p className="setting-description">Mute audio when game window is not active</p>
+            </div>
+
+            <div className="setting-group">
+              <button 
+                className="reset-btn secondary"
+                onClick={() => updateAudio({ musicVolume: 50, soundEffectsVolume: 75 })}
+              >
+                Reset Audio to Defaults
+              </button>
             </div>
           </div>
         )}
@@ -327,6 +445,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             </div>
           </div>
         )}
+      </div>
+      
+      {/* Global Reset Button */}
+      <div className="settings-footer">
+        <button 
+          className="reset-all-btn danger"
+          onClick={() => {
+            if (window.confirm('Reset all settings to defaults? This cannot be undone.')) {
+              resetToDefaults();
+            }
+          }}
+        >
+          🔄 Reset All Settings
+        </button>
       </div>
     </div>
   );

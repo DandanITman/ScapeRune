@@ -82,7 +82,7 @@ export class GraphicsSystem {
   private setupRenderer() {
     // Enhanced renderer settings
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.antialias = this.settings.antialias;
+    // Note: antialias is set during renderer creation, cannot be changed after creation
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -126,7 +126,7 @@ export class GraphicsSystem {
         if (this.directionalLight) {
           this.directionalLight.shadow.mapSize.setScalar(512);
         }
-        this.renderer.antialias = false;
+        // Note: antialias cannot be changed after renderer creation
         break;
 
       case 'medium':
@@ -134,7 +134,7 @@ export class GraphicsSystem {
         if (this.directionalLight) {
           this.directionalLight.shadow.mapSize.setScalar(1024);
         }
-        this.renderer.antialias = true;
+        // Note: antialias cannot be changed after renderer creation
         break;
 
       case 'high':
@@ -142,7 +142,7 @@ export class GraphicsSystem {
         if (this.directionalLight) {
           this.directionalLight.shadow.mapSize.setScalar(2048);
         }
-        this.renderer.antialias = true;
+        // Note: antialias cannot be changed after renderer creation
         break;
     }
   }

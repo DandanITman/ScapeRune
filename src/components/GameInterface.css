@@ -12,25 +12,34 @@
 
 .menu-bar {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  bottom: 10px;
+  right: 10px;
   display: flex;
-  gap: 5px;
+  gap: 3px;
   pointer-events: all;
+  flex-wrap: wrap;
+  max-width: calc(100vw - 300px); /* Leave space for other UI elements */
+  justify-content: flex-end;
 }
 
 .menu-button {
   background: linear-gradient(135deg, #8b4513, #a0522d);
   border: 2px solid #654321;
   color: white;
-  padding: 8px 16px;
+  padding: 8px 10px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: bold;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
   box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.1s ease;
+  border-radius: 4px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .menu-button:hover {
@@ -54,45 +63,37 @@
   top: 10px;
   right: 10px;
   background: rgba(0, 0, 0, 0.7);
-  padding: 10px;
+  padding: 6px 8px;
   border: 2px solid #8b4513;
   border-radius: 5px;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
   pointer-events: all;
+  font-size: 10px;
+  min-width: 180px;
 }
 
 .player-name {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   color: #ffd700;
 }
 
 .location,
 .combat-level,
-.hitpoints {
-  font-size: 12px;
-  margin-bottom: 3px;
-}
-
-.controls-help {
-  position: absolute;
-  bottom: 80px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 8px;
-  border: 1px solid #8b4513;
-  border-radius: 3px;
-  font-size: 11px;
-  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+.hitpoints,
+.prayer-points,
+.special-energy {
+  font-size: 9px;
+  margin-bottom: 2px;
 }
 
 .chat-area {
   position: absolute;
   bottom: 10px;
   left: 10px;
-  right: 10px;
-  height: 60px;
+  width: 33%;
+  height: 100px;
   pointer-events: all;
 }
 
@@ -100,7 +101,7 @@
   background: rgba(0, 0, 0, 0.8);
   border: 2px solid #8b4513;
   border-radius: 5px 5px 0 0;
-  height: 40px;
+  height: 75px;
   padding: 5px;
   overflow-y: auto;
   font-size: 11px;
@@ -114,7 +115,7 @@
 
 .chat-input {
   width: 100%;
-  height: 20px;
+  height: 25px;
   background: rgba(0, 0, 0, 0.9);
   border: 2px solid #8b4513;
   border-top: none;

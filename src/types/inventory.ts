@@ -90,7 +90,7 @@ export const ITEM_DEFINITIONS: Record<string, Omit<InventoryItem, 'quantity'>> =
   bread: {
     id: 'bread',
     name: 'Bread',
-    icon: '🍞',
+    icon: '/Sprites/cf12.png',
     description: 'This looks good to eat.',
     type: ItemType.FOOD,
     stackable: true,

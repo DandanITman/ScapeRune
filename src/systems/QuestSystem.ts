@@ -7,6 +7,8 @@ import type {
   QuestRequirement,
   QuestReward 
 } from '../types/quest';
+import type { PlayerStats } from '../store/gameStore';
+import type { InventorySlot } from '../types/inventory';
 
 export class QuestSystem {
   private static instance: QuestSystem;
@@ -64,7 +66,7 @@ export class QuestSystem {
   /**
    * Get quests that the player can start (meets requirements)
    */
-  public getAvailableQuests(playerStats: any, playerInventory: any[], completedQuests: string[]): Quest[] {
+  public getAvailableQuests(playerStats: PlayerStats, playerInventory: InventorySlot[], completedQuests: string[]): Quest[] {
     return this.getAllQuests().filter(quest => {
       // Skip if already completed
       if (completedQuests.includes(quest.id)) {
@@ -86,30 +88,37 @@ export class QuestSystem {
    */
   public checkRequirements(
     requirements: QuestRequirement[], 
-    playerStats: any, 
-    playerInventory: any[], 
+    playerStats: PlayerStats, 
+    playerInventory: InventorySlot[], 
     completedQuests: string[]
   ): boolean {
     return requirements.every(req => {
       switch (req.type) {
-        case 'level':
-          return playerStats[req.skill!] >= req.level!;
+        case 'level': {
+          return req.skill && req.skill in playerStats 
+            ? playerStats[req.skill as keyof PlayerStats] >= req.level!
+            : false;
+        }
         
-        case 'quest':
+        case 'quest': {
           return completedQuests.includes(req.questId!);
+        }
         
-        case 'item':
+        case 'item': {
           const item = playerInventory.find(slot => 
-            slot?.item?.id === req.itemId && slot?.quantity >= (req.quantity || 1)
+            slot?.item?.id === req.itemId && (slot?.item?.quantity || 0) >= (req.quantity || 1)
           );
           return !!item;
+        }
         
-        case 'location':
+        case 'location': {
           // Would need to check player's current location
           return true; // Placeholder
+        }
         
-        default:
+        default: {
           return true;
+        }
       }
     });
   }

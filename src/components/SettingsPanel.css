@@ -1,9 +1,6 @@
 /* Settings Panel Styles */
 .settings-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: absolute;
   width: 600px;
   max-width: 90vw;
   max-height: 80vh;
@@ -17,6 +14,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  pointer-events: all;
 }
 
 .settings-header {
@@ -26,6 +24,12 @@
   padding: 16px 20px;
   background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
   border-bottom: 2px solid #d68910;
+  cursor: grab;
+  user-select: none;
+}
+
+.settings-header:active {
+  cursor: grabbing;
 }
 
 .settings-header h2 {
@@ -120,6 +124,7 @@
   width: 18px;
   height: 18px;
   accent-color: #f39c12;
+  pointer-events: all;
 }
 
 .setting-group select {
@@ -132,6 +137,7 @@
   font-family: 'Courier New', monospace;
   font-size: 14px;
   margin-top: 5px;
+  pointer-events: all;
 }
 
 .setting-group select:focus {
@@ -143,6 +149,7 @@
   width: calc(100% - 60px);
   margin: 5px 10px 0 0;
   accent-color: #f39c12;
+  pointer-events: all;
 }
 
 .setting-group span {
@@ -198,6 +205,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  pointer-events: all;
 }
 
 .save-actions button:disabled {
@@ -329,4 +337,70 @@ hr {
 
 .settings-content::-webkit-scrollbar-thumb:hover {
   background: #e67e22;
+}
+
+/* Volume Control Styling */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.volume-control input[type="range"] {
+  flex: 1;
+  height: 6px;
+  background: #34495e;
+  border-radius: 3px;
+  outline: none;
+  appearance: none;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #f39c12;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb:hover {
+  background: #e67e22;
+  transform: scale(1.1);
+}
+
+.volume-control span {
+  min-width: 40px;
+  text-align: right;
+  font-weight: bold;
+  color: #f39c12;
+}
+
+/* Settings Footer */
+.settings-footer {
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid #34495e;
+  display: flex;
+  justify-content: center;
+}
+
+.reset-all-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.reset-all-btn:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }

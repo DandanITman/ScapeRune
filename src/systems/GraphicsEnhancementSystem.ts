@@ -45,15 +45,14 @@ export class GraphicsEnhancementSystem {
     // Configure renderer based on settings
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.antialias = this.settings.antiAliasing;
+    // Note: antialias cannot be changed after renderer creation
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     
     // Enable tone mapping for better lighting
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     
-    // Enable physically correct lights
-    this.renderer.physicallyCorrectLights = true;
+    // Note: physicallyCorrectLights is deprecated in newer Three.js versions
   }
 
   private setupShadowMaps(): void {
@@ -117,19 +116,19 @@ export class GraphicsEnhancementSystem {
   }
 
   private updateMaterialTextures(material: THREE.Material, filter: THREE.TextureFilter): void {
-    if ('map' in material && material.map) {
+    if ('map' in material && material.map && material.map instanceof THREE.Texture) {
       material.map.minFilter = filter;
-      material.map.magFilter = filter;
+      material.map.magFilter = filter as THREE.MagnificationTextureFilter;
       material.map.needsUpdate = true;
     }
-    if ('normalMap' in material && material.normalMap) {
+    if ('normalMap' in material && material.normalMap && material.normalMap instanceof THREE.Texture) {
       material.normalMap.minFilter = filter;
-      material.normalMap.magFilter = filter;
+      material.normalMap.magFilter = filter as THREE.MagnificationTextureFilter;
       material.normalMap.needsUpdate = true;
     }
-    if ('roughnessMap' in material && material.roughnessMap) {
+    if ('roughnessMap' in material && material.roughnessMap && material.roughnessMap instanceof THREE.Texture) {
       material.roughnessMap.minFilter = filter;
-      material.roughnessMap.magFilter = filter;
+      material.roughnessMap.magFilter = filter as THREE.MagnificationTextureFilter;
       material.roughnessMap.needsUpdate = true;
     }
   }
@@ -424,6 +423,6 @@ export class GraphicsEnhancementSystem {
     this.particleSystems.forEach(system => {
       this.scene.remove(system);
     });
-    this.particleSystems.clear();
+    this.particleSystems.length = 0;
   }
 }

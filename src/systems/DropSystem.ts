@@ -277,6 +277,13 @@ export class DropSystem {
   public setDropTable(monsterName: string, dropTable: DropTable): void {
     this.dropTables.set(monsterName, dropTable);
   }
+
+  /**
+   * Manually add a dropped item (e.g., when player drops an item from inventory)
+   */
+  public addDroppedItem(droppedItem: DroppedItem): void {
+    this.droppedItems.push(droppedItem);
+  }
 }
 
 export default DropSystem;

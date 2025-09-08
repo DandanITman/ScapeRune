@@ -3,33 +3,36 @@
   background: linear-gradient(135deg, #2d4a22, #1e3018);
   border: 3px solid #32cd32;
   border-radius: 8px;
-  width: 900px;
-  max-width: 95vw;
-  max-height: 90vh;
+  width: 450px;
+  max-height: 400px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
   color: #ffffff;
   font-family: 'Courier New', monospace;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2000;
+  position: absolute;
+  z-index: 1001;
+  pointer-events: all;
 }
 
 .panel-header {
   background: linear-gradient(135deg, #4a6741, #3e5539);
-  padding: 15px 20px;
+  padding: 10px 15px;
   border-bottom: 2px solid #32cd32;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.panel-header:active {
+  cursor: grabbing;
 }
 
 .panel-header h3 {
   margin: 0;
+  font-size: 14px;
   color: #32cd32;
-  font-size: 20px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -37,15 +40,15 @@
   background: #ff4444;
   color: white;
   border: none;
-  border-radius: 4px;
-  width: 30px;
-  height: 30px;
-  font-size: 18px;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  font-weight: bold;
 }
 
 .close-button:hover {
@@ -60,14 +63,14 @@
 
 .tab {
   flex: 1;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: transparent;
   color: #cccccc;
   border: none;
   border-right: 1px solid #32cd32;
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s;
 }
 

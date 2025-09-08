@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useDraggable } from '../hooks/useDraggable';
 import type { Herb, HerbloreRecipe, PotionEffect } from '../systems/HerbloreSystem';
 import './HerblorePanel.css';
 
@@ -12,6 +13,10 @@ export const HerblorePanel: React.FC<HerblorePanelProps> = ({ onClose }) => {
   const [selectedTab, setSelectedTab] = useState<'herbs' | 'potions'>('herbs');
   const [selectedHerb, setSelectedHerb] = useState<Herb | null>(null);
   const [selectedPotion, setSelectedPotion] = useState<HerbloreRecipe | null>(null);
+  
+  const draggable = useDraggable({ 
+    initialPosition: { x: 200, y: 100 } 
+  });
 
   // Mock data for demonstration - in real implementation, this would come from HerbloreSystem
   const herbs: Herb[] = [
@@ -112,7 +117,7 @@ export const HerblorePanel: React.FC<HerblorePanelProps> = ({ onClose }) => {
     }
   ];
 
-  const getHerbIcon = (herb: Herb): string => {
+  const getHerbIcon = (): string => {
     return '🌿'; // All herbs start as grimy
   };
 
@@ -151,8 +156,15 @@ export const HerblorePanel: React.FC<HerblorePanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="herblore-panel">
-      <div className="herblore-header">
+    <div 
+      ref={draggable.elementRef}
+      className="herblore-panel"
+      style={draggable.style}
+    >
+      <div 
+        className="herblore-header drag-handle"
+        onMouseDown={draggable.handleMouseDown}
+      >
         <h2>Herblore</h2>
         <button className="close-button" onClick={onClose}>×</button>
       </div>
@@ -183,7 +195,7 @@ export const HerblorePanel: React.FC<HerblorePanelProps> = ({ onClose }) => {
                   className={`herb-item ${canCleanHerb(herb) ? 'available' : 'locked'} ${selectedHerb?.id === herb.id ? 'selected' : ''}`}
                   onClick={() => setSelectedHerb(herb)}
                 >
-                  <div className="herb-icon">{getHerbIcon(herb)}</div>
+                  <div className="herb-icon">{getHerbIcon()}</div>
                   <div className="herb-info">
                     <div className="herb-name">{herb.name}</div>
                     <div className="herb-level">Level {herb.levelRequired}</div>

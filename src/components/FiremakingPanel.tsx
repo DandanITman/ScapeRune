@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useDraggable } from '../hooks/useDraggable';
 import type { FireType } from '../systems/FiremakingSystem';
 import './FiremakingPanel.css';
 
@@ -10,6 +11,10 @@ interface FiremakingPanelProps {
 export const FiremakingPanel: React.FC<FiremakingPanelProps> = ({ onClose }) => {
   const { player } = useGameStore();
   const [selectedFire, setSelectedFire] = useState<FireType | null>(null);
+  
+  const draggable = useDraggable({ 
+    initialPosition: { x: 250, y: 120 } 
+  });
 
   // Mock data for demonstration - in real implementation, this would come from FiremakingSystem
   const fires: FireType[] = [
@@ -109,8 +114,15 @@ export const FiremakingPanel: React.FC<FiremakingPanelProps> = ({ onClose }) => 
   };
 
   return (
-    <div className="firemaking-panel">
-      <div className="firemaking-header">
+    <div 
+      ref={draggable.elementRef}
+      className="firemaking-panel"
+      style={draggable.style}
+    >
+      <div 
+        className="firemaking-header drag-handle"
+        onMouseDown={draggable.handleMouseDown}
+      >
         <h2>Firemaking</h2>
         <button className="close-button" onClick={onClose}>×</button>
       </div>
