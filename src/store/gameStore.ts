@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import type { InventoryItem, InventorySlot, Equipment } from '../types/inventory';
 import { ITEM_DEFINITIONS, ItemType } from '../types/inventory';
 import { SmithingSystem } from '../systems/SmithingSystem';
+import type { PrayerState } from '../systems/PrayerSystem';
+import { PrayerSystem } from '../systems/PrayerSystem';
+import type { SpecialAttackEnergy } from '../systems/SpecialAttacksSystem';
+import { SpecialAttacksSystem } from '../systems/SpecialAttacksSystem';
+import { EnhancedCombatStyleSystem } from '../systems/EnhancedCombatStyleSystem';
+import type { CombatStyleName } from '../systems/EnhancedCombatStyleSystem';
+import type { PlayerQuestProgress } from '../types/quest';
 
 // Player stats interface
 export interface PlayerStats {
@@ -57,6 +64,8 @@ export interface Player {
   hitpoints: number;
   maxHitpoints: number;
   fatigue: number;
+  prayerState: PrayerState;
+  specialAttackEnergy: SpecialAttackEnergy;
   inventory: InventorySlot[];
   equipment: Equipment;
 }
@@ -67,7 +76,11 @@ export interface GameState {
   isGameLoaded: boolean;
   isPaused: boolean;
   currentLocation: string;
-  combatStyle: 'accurate' | 'aggressive' | 'defensive' | 'controlled';
+  combatStyle: CombatStyleName;
+  selectedSpell: string | null;
+  selectedRangedWeapon: string | null;
+  selectedAmmo: string | null;
+  questProgress: Record<string, PlayerQuestProgress>;
 }
 
 // Game store interface
@@ -81,8 +94,11 @@ interface GameStore extends GameState {
   setCurrentLocation: (location: string) => void;
   calculateCombatLevel: () => void;
   getCombatStats: () => { attack: number; defense: number; strength: number; hits: number; currentHits: number };
-  setCombatStyle: (style: 'accurate' | 'aggressive' | 'defensive' | 'controlled') => void;
+  setCombatStyle: (style: CombatStyleName) => void;
   updateCurrentHits: (damage: number) => void;
+  setSelectedSpell: (spellId: string | null) => void;
+  setSelectedRangedWeapon: (weaponId: string | null) => void;
+  setSelectedAmmo: (ammoId: string | null) => void;
   
   // Inventory actions
   addItemToInventory: (itemId: string, quantity?: number) => boolean;
@@ -95,6 +111,19 @@ interface GameStore extends GameState {
   hasInventorySpace: () => boolean;
   findItemInInventory: (itemId: string) => number | null;
   getEquipmentBonuses: () => { attackBonus: number; strengthBonus: number; defenseBonus: number };
+  
+  // Prayer actions
+  activatePrayer: (prayerId: string) => { success: boolean; message: string };
+  deactivatePrayer: (prayerId: string) => { success: boolean; message: string };
+  buryBones: (slotIndex: number) => { success: boolean; message: string; xp?: number };
+  restoreAtAltar: (altarType?: 'normal' | 'monastery') => { success: boolean; message: string };
+  updatePrayerDrain: (deltaTime: number) => void;
+  
+  // Special Attack actions
+  canUseSpecialAttack: (attackId: string) => { canUse: boolean; reason?: string };
+  performSpecialAttack: (attackId: string, targetId?: string) => { success: boolean; message: string; energyUsed: number };
+  updateSpecialAttackEnergy: (deltaTime: number) => void;
+  getAvailableSpecialAttacks: () => string[];
   
   // Smithing actions
   smeltOre: (recipeId: string) => { success: boolean; message: string; xp?: number };
@@ -149,6 +178,17 @@ const initialPlayer: Player = {
   hitpoints: 10,
   maxHitpoints: 10,
   fatigue: 0,
+  prayerState: {
+    currentPoints: 1,
+    maxPoints: 1,
+    activePrayers: new Set(),
+    drainRate: 0
+  },
+  specialAttackEnergy: {
+    current: 100,
+    maximum: 100,
+    regenRate: 1/3 // 1% per 3 seconds
+  },
   inventory: Array.from({ length: 30 }, (_, index) => ({
     slotIndex: index,
     item: index === 0 ? { ...ITEM_DEFINITIONS.bread, quantity: 5 } : 
@@ -163,7 +203,19 @@ const initialPlayer: Player = {
           index === 9 ? { ...ITEM_DEFINITIONS.tin_ore, quantity: 10 } :
           index === 10 ? { ...ITEM_DEFINITIONS.iron_ore, quantity: 5 } :
           index === 11 ? { ...ITEM_DEFINITIONS.coal, quantity: 10 } :
-          index === 12 ? { ...ITEM_DEFINITIONS.bronze_bar, quantity: 3 } : null
+          index === 12 ? { ...ITEM_DEFINITIONS.bronze_bar, quantity: 3 } :
+          index === 13 ? { ...ITEM_DEFINITIONS.staff, quantity: 1 } :
+          index === 14 ? { ...ITEM_DEFINITIONS.air_rune, quantity: 50 } :
+          index === 15 ? { ...ITEM_DEFINITIONS.water_rune, quantity: 25 } :
+          index === 16 ? { ...ITEM_DEFINITIONS.earth_rune, quantity: 25 } :
+          index === 17 ? { ...ITEM_DEFINITIONS.fire_rune, quantity: 25 } :
+          index === 18 ? { ...ITEM_DEFINITIONS.mind_rune, quantity: 50 } :
+          index === 19 ? { ...ITEM_DEFINITIONS.chaos_rune, quantity: 10 } :
+          index === 20 ? { ...ITEM_DEFINITIONS.death_rune, quantity: 5 } :
+          index === 21 ? { ...ITEM_DEFINITIONS.law_rune, quantity: 3 } :
+          index === 22 ? { ...ITEM_DEFINITIONS.shortbow, quantity: 1 } :
+          index === 23 ? { ...ITEM_DEFINITIONS.bronze_arrow, quantity: 100 } :
+          index === 24 ? { ...ITEM_DEFINITIONS.bones, quantity: 5 } : null
   })),
   equipment: {}
 };
@@ -181,6 +233,10 @@ const expTable = [
   4842295, 5346332, 5902831, 6517253, 7195629, 7944614, 8771558, 9684577, 10692629,
   11805606, 13034431, 200000000,
 ];
+
+// Initialize singleton prayer system
+const prayerSystemInstance = new PrayerSystem();
+const specialAttacksSystemInstance = new SpecialAttacksSystem();
 
 // Calculate level from experience
 function getLevelFromExp(exp: number): number {
@@ -217,6 +273,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isPaused: false,
   currentLocation: 'Tutorial Island',
   combatStyle: 'accurate',
+  selectedSpell: null,
+  selectedRangedWeapon: null,
+  selectedAmmo: null,
+  questProgress: {},
 
   setPlayerPosition: (position) =>
     set((state) => ({
@@ -277,6 +337,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   setCombatStyle: (style) => set({ combatStyle: style }),
+  
+  setSelectedSpell: (spellId) => set({ selectedSpell: spellId }),
+  
+  setSelectedRangedWeapon: (weaponId) => set({ selectedRangedWeapon: weaponId }),
+  
+  setSelectedAmmo: (ammoId) => set({ selectedAmmo: ammoId }),
   
   updateCurrentHits: (damage) => set((state) => ({
     player: {
@@ -389,12 +455,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     newEquipment[item.equipSlot as keyof Equipment] = item;
     newInventory[slotIndex].item = null;
 
+    // Auto-switch combat style if equipping a weapon
+    let newCombatStyle = state.combatStyle;
+    if (item.equipSlot === 'weapon') {
+      newCombatStyle = EnhancedCombatStyleSystem.autoSwitchStyle(state.combatStyle as CombatStyleName, item);
+      if (newCombatStyle !== state.combatStyle) {
+        console.log(`Combat style automatically switched to ${newCombatStyle} for ${item.name}`);
+      }
+    }
+
     set((state) => ({
       player: {
         ...state.player,
         equipment: newEquipment,
         inventory: newInventory
-      }
+      },
+      combatStyle: newCombatStyle
     }));
     
     console.log(`Equipped ${item.name}`);
@@ -559,5 +635,212 @@ export const useGameStore = create<GameStore>((set, get) => ({
       message: `You successfully smith ${recipe.name}.`,
       xp: recipe.experience
     };
+  },
+
+  // Prayer actions
+  activatePrayer: (prayerId: string) => {
+    const state = get();
+    
+    const canActivate = prayerSystemInstance.canActivatePrayer(
+      prayerId,
+      state.player.stats.prayer,
+      state.player.prayerState.currentPoints,
+      state.player.prayerState.activePrayers
+    );
+    
+    if (!canActivate.canActivate) {
+      return { success: false, message: canActivate.reason || 'Cannot activate prayer' };
+    }
+    
+    const result = prayerSystemInstance.activatePrayer(prayerId, state.player.prayerState);
+    
+    set((state) => ({
+      player: {
+        ...state.player,
+        prayerState: { ...state.player.prayerState }
+      }
+    }));
+    
+    return result;
+  },
+
+  deactivatePrayer: (prayerId: string) => {
+    const state = get();
+    
+    const result = prayerSystemInstance.deactivatePrayer(prayerId, state.player.prayerState);
+    
+    set((state) => ({
+      player: {
+        ...state.player,
+        prayerState: { ...state.player.prayerState }
+      }
+    }));
+    
+    return result;
+  },
+
+  buryBones: (slotIndex: number) => {
+    const state = get();
+    const item = state.player.inventory[slotIndex]?.item;
+    
+    if (!item) {
+      return { success: false, message: 'No item in that slot' };
+    }
+    
+    const boneData = prayerSystemInstance.getBone(item.id);
+    
+    if (!boneData) {
+      return { success: false, message: 'This item cannot be buried' };
+    }
+    
+    const result = prayerSystemInstance.buryBones(item.id, 1);
+    
+    if (result.success && result.experience) {
+      // Remove one bone from inventory
+      get().removeItemFromInventory(slotIndex, 1);
+      
+      // Add experience
+      get().addExperience('prayer', result.experience);
+      
+      // Update max prayer points based on new level
+      const newLevel = getLevelFromExp(state.player.experience.prayer + result.experience);
+      const newMaxPoints = prayerSystemInstance.calculateMaxPrayerPoints(newLevel);
+      
+      set((state) => ({
+        player: {
+          ...state.player,
+          prayerState: {
+            ...state.player.prayerState,
+            maxPoints: newMaxPoints,
+            currentPoints: Math.min(state.player.prayerState.currentPoints, newMaxPoints)
+          }
+        }
+      }));
+    }
+    
+    return result;
+  },
+
+  restoreAtAltar: (altarType = 'normal') => {
+    const result = prayerSystemInstance.restoreAtAltar(altarType);
+    
+    if (result.success) {
+      set((state) => ({
+        player: {
+          ...state.player,
+          prayerState: {
+            ...state.player.prayerState,
+            currentPoints: state.player.prayerState.maxPoints + (result.pointsUsed || 0),
+            activePrayers: new Set(), // Deactivate all prayers when praying at altar
+            drainRate: 0
+          }
+        }
+      }));
+    }
+    
+    return result;
+  },
+
+  updatePrayerDrain: (deltaTime: number) => {
+    const state = get();
+    if (state.player.prayerState.activePrayers.size === 0) return;
+    
+    const newPrayerState = { ...state.player.prayerState };
+    prayerSystemInstance.updatePrayerPoints(newPrayerState, deltaTime);
+    
+    set((state) => ({
+      player: {
+        ...state.player,
+        prayerState: newPrayerState
+      }
+    }));
+  },
+
+  // Special Attack actions
+  canUseSpecialAttack: (attackId: string) => {
+    const state = get();
+    const equippedWeapon = state.player.equipment.weapon;
+    
+    let weaponType: string | undefined = undefined;
+    if (equippedWeapon) {
+      weaponType = specialAttacksSystemInstance.getWeaponType(equippedWeapon.id) || undefined;
+    }
+    
+    return specialAttacksSystemInstance.canUseSpecialAttack(
+      attackId,
+      state.player.specialAttackEnergy.current,
+      weaponType
+    );
+  },
+
+  performSpecialAttack: (attackId: string, _targetId?: string) => {
+    const canUse = get().canUseSpecialAttack(attackId);
+    
+    if (!canUse.canUse) {
+      return {
+        success: false,
+        message: canUse.reason || 'Cannot use special attack',
+        energyUsed: 0
+      };
+    }
+
+    const attack = specialAttacksSystemInstance.getSpecialAttack(attackId);
+    if (!attack) {
+      return {
+        success: false,
+        message: 'Special attack not found',
+        energyUsed: 0
+      };
+    }
+
+    // For now, just consume energy and show message
+    // In a real game, this would perform combat calculations
+    const energyUsed = attack.energyCost;
+    
+    set((state) => ({
+      player: {
+        ...state.player,
+        specialAttackEnergy: {
+          ...state.player.specialAttackEnergy,
+          current: Math.max(0, state.player.specialAttackEnergy.current - energyUsed)
+        }
+      }
+    }));
+
+    return {
+      success: true,
+      message: `${attack.name} activated! ${attack.description}`,
+      energyUsed
+    };
+  },
+
+  updateSpecialAttackEnergy: (deltaTime: number) => {
+    const state = get();
+    const newEnergy = { ...state.player.specialAttackEnergy };
+    specialAttacksSystemInstance.updateSpecialEnergy(newEnergy, deltaTime);
+    
+    set((state) => ({
+      player: {
+        ...state.player,
+        specialAttackEnergy: newEnergy
+      }
+    }));
+  },
+
+  getAvailableSpecialAttacks: () => {
+    const state = get();
+    const equippedWeapon = state.player.equipment.weapon;
+    
+    if (!equippedWeapon) {
+      return []; // No weapon equipped, no special attacks available
+    }
+    
+    const weaponType = specialAttacksSystemInstance.getWeaponType(equippedWeapon.id);
+    if (!weaponType) {
+      return []; // Unknown weapon type
+    }
+    
+    const weaponSpecials = specialAttacksSystemInstance.getWeaponSpecials(weaponType);
+    return weaponSpecials.map(attack => attack.id);
   }
 }));

@@ -2,7 +2,9 @@
 
 🚀 **Live Repository**: https://github.com/DandanITman/ScapeRune
 
-A modern recreation of RuneScape Classic built with TypeScript, React, Three.js, and Vite. This project features authentic RSC combat mechanics, comprehensive skill systems, world building with NPCs and towns, banking, shopping, and a complete 3D world with isometric camera.
+A fully opensource MMORPG based on Runescape Classic to see how much can be done with modern AI Coding agents. Each version over time will be a marker to the testament of AI game development at the time.
+
+If you wish to contribute to the project feel free to reach out to contact@everember.com or join our discord: TBD
 
 ## 🎮 Project Overview
 

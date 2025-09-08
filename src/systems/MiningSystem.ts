@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OreModelLoader } from '../utils/OreModelLoader';
 
 export interface MiningEquipment {
   pickaxeType: 'bronze' | 'iron' | 'steel' | 'mithril' | 'adamant' | 'rune';
@@ -213,6 +214,11 @@ export class MiningSystem {
       // Rock is mined
       rock.isMined = true;
       rock.minedAt = Date.now();
+      
+      // Hide the rock mesh when mined
+      if (rock.mesh) {
+        rock.mesh.visible = false;
+      }
 
       // Add ore to inventory
       const itemId = rock.type === 'copper' ? 'copper_ore' : 
@@ -269,7 +275,7 @@ export class MiningSystem {
   /**
    * Check if a rock should respawn
    */
-  public checkRockRespawn(rock: Rock): boolean {
+  public async checkRockRespawn(rock: Rock, scene?: THREE.Scene): Promise<boolean> {
     if (!rock.isMined || !rock.minedAt) return false;
 
     const oreType = this.oreTypes[rock.type];
@@ -278,6 +284,23 @@ export class MiningSystem {
     if (timeElapsed >= oreType.respawnTime) {
       rock.isMined = false;
       rock.minedAt = undefined;
+      
+      // Show the rock mesh again or recreate with custom model
+      if (rock.mesh) {
+        rock.mesh.visible = true;
+      } else if (scene) {
+        // Recreate the rock mesh with custom model
+        try {
+          const newMesh = await this.createRockMesh(rock.type);
+          newMesh.position.copy(rock.position);
+          scene.add(newMesh);
+          rock.mesh = newMesh;
+          console.log(`Respawned ${rock.type} rock with custom model`);
+        } catch (error) {
+          console.warn(`Failed to recreate ${rock.type} rock with custom model:`, error);
+        }
+      }
+      
       return true;
     }
 
@@ -321,9 +344,12 @@ export class MiningSystem {
   /**
    * Update rock respawns (call this in your game loop)
    */
-  public updateRocks(): void {
+  public updateRocks(scene?: THREE.Scene): void {
     for (const rock of this.rocks) {
-      this.checkRockRespawn(rock);
+      // Handle async respawn without blocking
+      this.checkRockRespawn(rock, scene).catch(error => {
+        console.warn('Error during rock respawn:', error);
+      });
     }
   }
 
@@ -342,12 +368,57 @@ export class MiningSystem {
   }
 
   /**
-   * Create a rock mesh for the 3D world
+   * Create a rock mesh for the 3D world using custom ore models
    */
-  public createRockMesh(rockType: string): THREE.Group {
+  public async createRockMesh(rockType: string): Promise<THREE.Group> {
     const rockGroup = new THREE.Group();
     
-    // Rock colors based on ore type
+    try {
+      // Try to load custom ore model
+      const oreModelLoader = OreModelLoader.getInstance();
+      const oreModel = await oreModelLoader.createOreModel(rockType);
+      
+      // Scale and position the model appropriately
+      oreModel.scale.set(1.2, 1.2, 1.2);
+      oreModel.position.y = 0.2;
+      
+      // Add some randomness to the orientation
+      oreModel.rotation.y = Math.random() * Math.PI * 2;
+      oreModel.rotation.x = (Math.random() - 0.5) * 0.3;
+      oreModel.rotation.z = (Math.random() - 0.5) * 0.3;
+      
+      rockGroup.add(oreModel);
+      
+      console.log(`Created custom ${rockType} ore model`);
+    } catch (error) {
+      console.warn(`Failed to load custom model for ${rockType}, using fallback`);
+      // Fallback to the original geometry-based approach
+      const fallbackRock = this.createFallbackRock(rockType);
+      rockGroup.add(fallbackRock);
+    }
+
+    // Add collision detector (this part stays the same)
+    const collisionGeometry = new THREE.BoxGeometry(2, 1.5, 2);
+    const collisionMaterial = new THREE.MeshBasicMaterial({ 
+      transparent: true, 
+      opacity: 0, 
+      visible: false 
+    });
+    const collision = new THREE.Mesh(collisionGeometry, collisionMaterial);
+    collision.position.y = 0.75;
+    collision.userData = { type: 'rock', rockType };
+    rockGroup.add(collision);
+
+    return rockGroup;
+  }
+
+  /**
+   * Create fallback rock mesh using geometry (original method)
+   */
+  private createFallbackRock(rockType: string): THREE.Group {
+    const fallbackGroup = new THREE.Group();
+    
+    // Rock colors based on ore type (from original implementation)
     const rockColors: Record<string, number> = {
       'clay': 0x8B4513,      // Brown
       'copper': 0xB87333,    // Copper
@@ -377,21 +448,8 @@ export class MiningSystem {
     rock.rotation.x = (Math.random() - 0.5) * 0.5;
     rock.rotation.z = (Math.random() - 0.5) * 0.5;
     
-    rockGroup.add(rock);
-
-    // Add a simple collision detector
-    const collisionGeometry = new THREE.BoxGeometry(2, 1.5, 2);
-    const collisionMaterial = new THREE.MeshBasicMaterial({ 
-      transparent: true, 
-      opacity: 0, 
-      visible: false 
-    });
-    const collision = new THREE.Mesh(collisionGeometry, collisionMaterial);
-    collision.position.y = 0.75;
-    collision.userData = { type: 'rock', rockType };
-    rockGroup.add(collision);
-
-    return rockGroup;
+    fallbackGroup.add(rock);
+    return fallbackGroup;
   }
 
   /**

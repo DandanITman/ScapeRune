@@ -2,7 +2,7 @@
   position: absolute;
   top: 120px;
   right: 20px;
-  width: 250px;
+  width: 280px;
   background: linear-gradient(135deg, #8B4513, #D2691E);
   border: 2px solid #4A4A4A;
   border-radius: 8px;
@@ -21,6 +21,42 @@
   color: #FFD700;
   text-align: center;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.weapon-info {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #4A4A4A;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.weapon-name {
+  font-weight: bold;
+  font-size: 14px;
+  color: #FFD700;
+  margin-bottom: 4px;
+}
+
+.weapon-category {
+  font-size: 11px;
+  color: #E0E0E0;
+}
+
+.category-name {
+  color: #90EE90;
+  text-transform: capitalize;
+}
+
+.style-warning {
+  background: rgba(255, 69, 0, 0.3);
+  border: 1px solid #FF4500;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: #FFD700;
+  text-align: center;
 }
 
 .combat-styles {
@@ -56,10 +92,36 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+.style-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
 .style-name {
   font-weight: bold;
   font-size: 14px;
+}
+
+.speed-indicator {
+  font-size: 12px;
+}
+
+.style-bonuses {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-bottom: 4px;
+}
+
+.bonus {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 10px;
+  color: #90EE90;
 }
 
 .style-description {
@@ -76,9 +138,98 @@
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   border: 1px solid #4A4A4A;
+  margin-bottom: 8px;
 }
 
 .current-style strong {
   color: #FFF;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.invalid-indicator {
+  color: #FF6B6B;
+  font-size: 10px;
+}
+
+.auto-switch-note {
+  font-size: 10px;
+  color: #B0B0B0;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.8;
+}
+.combat-style-button.active {
+  background: linear-gradient(135deg, #B8860B, #DAA520);
+  border-color: #FFD700;
+  color: #2F1B14;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.style-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.style-name {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.speed-indicator {
+  font-size: 12px;
+}
+
+.style-bonuses {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.bonus {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 10px;
+  color: #90EE90;
+}
+
+.style-description {
+  font-size: 11px;
+  opacity: 0.9;
+  line-height: 1.3;
+}
+
+.current-style {
+  text-align: center;
+  font-size: 12px;
+  color: #FFD700;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border: 1px solid #4A4A4A;
+  margin-bottom: 8px;
+}
+
+.current-style strong {
+  color: #FFF;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.invalid-indicator {
+  color: #FF6B6B;
+  font-size: 10px;
+}
+
+.auto-switch-note {
+  font-size: 10px;
+  color: #B0B0B0;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.8;
 }

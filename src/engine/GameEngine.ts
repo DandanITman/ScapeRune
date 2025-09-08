@@ -5,6 +5,9 @@ import { WoodcuttingSystem } from '../systems/WoodcuttingSystem';
 import { MiningSystem } from '../systems/MiningSystem';
 import { FishingSystem } from '../systems/FishingSystem';
 import { SmithingSystem } from '../systems/SmithingSystem';
+import { DropSystem } from '../systems/DropSystem';
+import type { DroppedItem } from '../systems/DropSystem';
+import { ModelLoader } from '../utils/ModelLoader';
 import { useGameStore } from '../store/gameStore';
 import type { Equipment } from '../types/inventory';
 
@@ -20,8 +23,9 @@ export class GameEngine {
   // Game objects
   private player: THREE.Mesh | null = null;
   private terrain: THREE.Mesh | null = null;
-  private npcs: THREE.Mesh[] = [];
+  private npcs: THREE.Object3D[] = [];
   private trees: THREE.Group[] = [];
+  private droppedItemMeshes: THREE.Mesh[] = [];
   
   // Skill systems
   private combatSystem = new CombatSystem();
@@ -29,11 +33,13 @@ export class GameEngine {
   private miningSystem = new MiningSystem();
   private fishingSystem = new FishingSystem();
   private smithingSystem = new SmithingSystem();
+  private dropSystem = new DropSystem();
+  private modelLoader = new ModelLoader();
   private playerCombatStyle: CombatStyle = 'controlled';
   
   // Combat state
   private inCombat = false;
-  private combatTarget: THREE.Mesh | null = null;
+  private combatTarget: THREE.Object3D | null = null;
   private combatInterval: number | null = null;
   private combatCallback: ((result: any) => void) | null = null;
   
@@ -105,12 +111,18 @@ export class GameEngine {
     console.log('Player created');
     
     console.log('Creating NPCs...');
-    this.createNPCs();
-    console.log('NPCs created');
+    // NPCs will be created asynchronously after initialization
+    this.initializeAsyncComponents();
+    console.log('NPCs will be loaded asynchronously...');
     
     console.log('Creating skill resources...');
-    this.createSkillResources();
-    console.log('Skill resources created');
+    // Make skill resources creation async to handle custom ore models
+    this.createSkillResources().then(() => {
+      console.log('Skill resources created with custom models');
+    }).catch((error) => {
+      console.warn('Some skill resources failed to load custom models:', error);
+    });
+    console.log('Skill resources loading started...');
     
     // Position camera in isometric view
     console.log('Setting up camera...');
@@ -127,6 +139,21 @@ export class GameEngine {
     window.addEventListener('resize', this.handleResize.bind(this));
     
     console.log('GameEngine setup complete');
+  }
+
+  private async initializeAsyncComponents(): Promise<void> {
+    try {
+      console.log('Preloading ore models...');
+      const { OreModelLoader } = await import('../utils/OreModelLoader');
+      await OreModelLoader.getInstance().preloadAllOres();
+      console.log('Ore models preloaded successfully');
+      
+      console.log('Loading NPCs with custom models...');
+      await this.createNPCs();
+      console.log('NPCs created successfully');
+    } catch (error) {
+      console.error('Error loading async components:', error);
+    }
   }
 
   private setupLighting(): void {
@@ -186,7 +213,7 @@ export class GameEngine {
     console.log('Player character created at position:', this.player.position);
   }
 
-  private createNPCs(): void {
+  private async createNPCs(): Promise<void> {
     // Create some basic NPCs around the world
     const npcData = [
       { name: 'Goblin', color: 0x228B22, position: { x: 5, z: 5 } },
@@ -195,17 +222,60 @@ export class GameEngine {
       { name: 'Rat', color: 0x696969, position: { x: -3, z: -2 } }
     ];
 
-    npcData.forEach(data => {
-      const npc = this.createNPC(data.name, data.color);
-      npc.position.set(data.position.x, 1, data.position.z);
-      this.scene.add(npc);
-      this.npcs.push(npc);
-    });
+    for (const data of npcData) {
+      try {
+        const npc = await this.createNPC(data.name, data.color);
+        npc.position.set(data.position.x, 1, data.position.z);
+        this.scene.add(npc);
+        this.npcs.push(npc);
+      } catch (error) {
+        console.error(`Failed to create NPC ${data.name}:`, error);
+        // Create fallback NPC
+        const fallbackNpc = this.createFallbackNPC(data.name, data.color);
+        fallbackNpc.position.set(data.position.x, 1, data.position.z);
+        this.scene.add(fallbackNpc);
+        this.npcs.push(fallbackNpc);
+      }
+    }
   }
 
-  private createNPC(name: string, color: number): THREE.Mesh {
-    // Create NPC body (smaller than player)
-    const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.2);
+  private async createNPC(name: string, color: number): Promise<THREE.Object3D> {
+    // Try to load custom model first
+    if (this.modelLoader.hasCustomModel(name)) {
+      try {
+        console.log(`Loading custom model for ${name}...`);
+        const model = await this.modelLoader.loadMonsterModel(name, {
+          scale: 1,
+          castShadow: true,
+          receiveShadow: false
+        });
+        
+        // Add combat stats and user data to the model
+        const combatStats = CombatSystem.getNPCStats(name);
+        model.userData = { 
+          name, 
+          type: 'npc',
+          stats: combatStats,
+          equipment: CombatSystem.getNPCEquipment(),
+          style: 'controlled' as CombatStyle,
+          maxHits: combatStats.hits,
+          currentHits: combatStats.currentHits
+        };
+        
+        console.log(`Successfully loaded custom model for ${name}`);
+        return model;
+      } catch (error) {
+        console.warn(`Failed to load custom model for ${name}, falling back to default:`, error);
+      }
+    }
+    
+    // Fall back to creating default geometry NPC
+    return this.createFallbackNPC(name, color);
+  }
+
+  private createFallbackNPC(name: string, color: number): THREE.Mesh {
+    // Create NPC body using appropriate geometry for the monster type
+    const bodyGeometry = this.modelLoader.getDefaultMonsterGeometry(name);
     const bodyMaterial = new THREE.MeshLambertMaterial({ color });
     const npc = new THREE.Mesh(bodyGeometry, bodyMaterial);
     npc.castShadow = true;
@@ -227,12 +297,12 @@ export class GameEngine {
     return npc;
   }
 
-  private createSkillResources(): void {
+  private async createSkillResources(): Promise<void> {
     // Create trees for woodcutting
     this.createTrees();
     
-    // Create rocks for mining
-    this.createRocks();
+    // Create rocks for mining (now async for custom models)
+    await this.createRocks();
     
     // Create fishing spots
     this.createFishingSpots();
@@ -270,7 +340,7 @@ export class GameEngine {
     });
   }
 
-  private createRocks(): void {
+  private async createRocks(): Promise<void> {
     const rockData = [
       { type: 'clay', position: { x: 12, z: 8 } },
       { type: 'copper', position: { x: 10, z: 10 } },
@@ -283,9 +353,10 @@ export class GameEngine {
       { type: 'runite', position: { x: -25, z: 20 } }
     ];
 
-    rockData.forEach(data => {
+    // Create rocks with custom models
+    const rockPromises = rockData.map(async (data) => {
       const position = new THREE.Vector3(data.position.x, 0, data.position.z);
-      const rockMesh = this.miningSystem.createRockMesh(data.type);
+      const rockMesh = await this.miningSystem.createRockMesh(data.type);
       rockMesh.position.copy(position);
       this.scene.add(rockMesh);
 
@@ -298,6 +369,10 @@ export class GameEngine {
         isMined: false
       });
     });
+
+    // Wait for all rocks to be created
+    await Promise.all(rockPromises);
+    console.log('All ore rocks created with custom models');
   }
 
   private createFishingSpots(): void {
@@ -434,8 +509,8 @@ export class GameEngine {
     // Update tree respawns
     this.woodcuttingSystem.updateTrees();
     
-    // Update rock respawns
-    this.miningSystem.updateRocks();
+    // Update rock respawns (pass scene for recreating custom models)
+    this.miningSystem.updateRocks(this.scene);
     
     // Note: Fishing spots don't need respawning as they're always available
   }
@@ -461,7 +536,7 @@ export class GameEngine {
     return null;
   }
 
-  public getClickedNPC(mouseX: number, mouseY: number, containerWidth: number, containerHeight: number): THREE.Mesh | null {
+  public getClickedNPC(mouseX: number, mouseY: number, containerWidth: number, containerHeight: number): THREE.Object3D | null {
     // Convert mouse coordinates to normalized device coordinates
     const mouse = new THREE.Vector2();
     mouse.x = (mouseX / containerWidth) * 2 - 1;
@@ -471,8 +546,35 @@ export class GameEngine {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, this.camera);
 
-    // Check intersection with NPCs
-    const intersects = raycaster.intersectObjects(this.npcs);
+    // Check intersection with NPCs (need to check children for .glb models)
+    const intersects = raycaster.intersectObjects(this.npcs, true); // recursive = true for children
+    if (intersects.length > 0) {
+      // Find the top-level NPC object by traversing up the hierarchy
+      let object = intersects[0].object;
+      while (object.parent && !this.npcs.includes(object)) {
+        object = object.parent;
+      }
+      return this.npcs.includes(object) ? object : null;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get clicked dropped item for pickup
+   */
+  public getClickedDroppedItem(mouseX: number, mouseY: number, containerWidth: number, containerHeight: number): THREE.Mesh | null {
+    // Convert mouse coordinates to normalized device coordinates
+    const mouse = new THREE.Vector2();
+    mouse.x = (mouseX / containerWidth) * 2 - 1;
+    mouse.y = -(mouseY / containerHeight) * 2 + 1;
+
+    // Create raycaster
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    // Check intersection with dropped items
+    const intersects = raycaster.intersectObjects(this.droppedItemMeshes);
     if (intersects.length > 0) {
       return intersects[0].object as THREE.Mesh;
     }
@@ -579,7 +681,7 @@ export class GameEngine {
     return { weaponAim, weaponPower, armour };
   }
 
-  public attackNPC(npc: THREE.Mesh, playerStats?: any, combatStyle?: string): { success: boolean, damage: number, xp: any, npcDead: boolean } {
+  public attackNPC(npc: THREE.Object3D, playerStats?: any, combatStyle?: string): { success: boolean, damage: number, xp: any, npcDead: boolean } {
     if (!this.player) return { success: false, damage: 0, xp: {}, npcDead: false };
 
     // Use provided player stats or defaults
@@ -627,6 +729,19 @@ export class GameEngine {
     const npcDead = npcCombatant.stats.currentHits <= 0;
     
     if (npcDead) {
+      // Generate drops for the killed monster
+      const drops = this.dropSystem.generateDrops(npc.userData.name, {
+        x: npc.position.x,
+        y: npc.position.y + 0.1, // Slightly above ground
+        z: npc.position.z
+      });
+
+      // Create visual representations for dropped items
+      drops.forEach((drop, index) => {
+        const dropMesh = this.createDroppedItemMesh(drop, index);
+        this.scene.add(dropMesh);
+      });
+
       // Remove NPC from scene
       this.scene.remove(npc);
       const npcIndex = this.npcs.indexOf(npc);
@@ -649,7 +764,7 @@ export class GameEngine {
   }
 
   // Start continuous combat with an NPC
-  public startCombat(npc: THREE.Mesh, playerStats: any, combatStyle: string, callback: (result: any) => void): void {
+  public startCombat(npc: THREE.Object3D, playerStats: any, combatStyle: string, callback: (result: any) => void): void {
     if (this.inCombat) {
       this.stopCombat();
     }
@@ -727,7 +842,7 @@ export class GameEngine {
   }
 
   // NPC attacks the player
-  private npcAttackPlayer(npc: THREE.Mesh, playerStats: any): { success: boolean, damage: number, playerDead: boolean } {
+  private npcAttackPlayer(npc: THREE.Object3D, playerStats: any): { success: boolean, damage: number, playerDead: boolean } {
     if (!this.player) return { success: false, damage: 0, playerDead: false };
 
     // Create combatant objects (NPC attacking player)
@@ -775,7 +890,7 @@ export class GameEngine {
   }
 
   // Get current combat target
-  public getCombatTarget(): THREE.Mesh | null {
+  public getCombatTarget(): THREE.Object3D | null {
     return this.combatTarget;
   }
 
@@ -867,6 +982,92 @@ export class GameEngine {
 
   public getFishingSystem(): FishingSystem {
     return this.fishingSystem;
+  }
+
+  /**
+   * Create a visual representation of a dropped item
+   */
+  private createDroppedItemMesh(drop: DroppedItem, index: number): THREE.Mesh {
+    // Create a small cube to represent the dropped item
+    const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+    
+    // Choose color based on item type or rarity
+    let color = 0xFFFFFF; // Default white
+    
+    // Color coding for different item types
+    if (drop.itemId === 'coins') color = 0xFFD700; // Gold for coins
+    else if (drop.itemId === 'bones') color = 0xF5F5DC; // Beige for bones
+    else if (drop.itemId.includes('rune')) color = 0x9932CC; // Purple for runes
+    else if (drop.itemId.includes('raw_') || drop.itemId === 'cowhide' || drop.itemId === 'feather') color = 0x8B4513; // Brown for materials
+    else if (drop.itemId.includes('uncut_')) color = 0x00FF00; // Green for gems
+    else if (drop.itemId.includes('half')) color = 0xFF0000; // Red for rare items
+    else if (drop.itemId.includes('dagger') || drop.itemId.includes('sword') || drop.itemId.includes('spear')) color = 0xC0C0C0; // Silver for weapons
+    else if (drop.itemId.includes('shield')) color = 0x8B4513; // Brown for shields
+    else color = 0x87CEEB; // Light blue for misc items
+    
+    const material = new THREE.MeshLambertMaterial({ color });
+    const itemMesh = new THREE.Mesh(geometry, material);
+    
+    // Position the item with slight spacing if multiple items
+    const offsetX = (index % 3 - 1) * 0.4; // Spread items horizontally
+    const offsetZ = Math.floor(index / 3) * 0.4; // Spread in rows
+    
+    itemMesh.position.set(
+      drop.position.x + offsetX,
+      drop.position.y,
+      drop.position.z + offsetZ
+    );
+    
+    itemMesh.castShadow = true;
+    
+    // Store drop data in userData for pickup functionality
+    itemMesh.userData = {
+      type: 'dropped_item',
+      dropData: drop,
+      dropIndex: this.dropSystem.getDroppedItems().length - (index + 1)
+    };
+    
+    // Add to tracking array
+    this.droppedItemMeshes.push(itemMesh);
+    
+    return itemMesh;
+  }
+
+  /**
+   * Handle picking up dropped items
+   */
+  public pickupDroppedItem(itemMesh: THREE.Mesh): boolean {
+    const dropData = itemMesh.userData.dropData as DroppedItem;
+    const dropIndex = itemMesh.userData.dropIndex as number;
+    
+    if (!dropData) return false;
+    
+    // Try to add item to player inventory
+    const addItemToInventory = useGameStore.getState().addItemToInventory;
+    const success = addItemToInventory(dropData.itemId, dropData.quantity);
+    
+    if (success) {
+      // Remove from drop system
+      this.dropSystem.pickupItem(dropIndex);
+      
+      // Remove visual representation
+      this.scene.remove(itemMesh);
+      const meshIndex = this.droppedItemMeshes.indexOf(itemMesh);
+      if (meshIndex > -1) {
+        this.droppedItemMeshes.splice(meshIndex, 1);
+      }
+      
+      return true;
+    }
+    
+    return false; // Inventory full
+  }
+
+  /**
+   * Get the drop system instance
+   */
+  public getDropSystem(): DropSystem {
+    return this.dropSystem;
   }
 
   public dispose(): void {

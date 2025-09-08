@@ -448,7 +448,37 @@ const Game: React.FC = () => {
       setClickIndicator({x: mouseX, y: mouseY, show: true});
       setTimeout(() => setClickIndicator(prev => ({...prev, show: false})), 500);
 
-      // First check if we clicked an NPC
+      // First check if we clicked a dropped item for pickup
+      const clickedDroppedItem = engine.getClickedDroppedItem(mouseX, mouseY, rect.width, rect.height);
+      if (clickedDroppedItem) {
+        const dropData = clickedDroppedItem.userData.dropData;
+        console.log(`Clicked dropped item: ${dropData.name} x${dropData.quantity}`);
+        
+        // Move to item and pick it up
+        const itemPos = clickedDroppedItem.position.clone();
+        engine.movePlayerTo(itemPos);
+        setTargetPosition(itemPos);
+        setIsMoving(true);
+        
+        // Pick up item after reaching it
+        setTimeout(() => {
+          const success = engine.pickupDroppedItem(clickedDroppedItem);
+          if (success) {
+            // Show pickup message
+            const itemScreenPos = getScreenPosition(clickedDroppedItem.position);
+            addFloatingText(`+${dropData.quantity} ${dropData.name}`, 'heal', itemScreenPos.x, itemScreenPos.y);
+          } else {
+            // Show inventory full message
+            const playerPos = engine.getPlayerPosition();
+            const playerScreenPos = getScreenPosition(playerPos);
+            addFloatingText('Inventory full!', 'miss', playerScreenPos.x, playerScreenPos.y);
+          }
+        }, 1000);
+        
+        return;
+      }
+
+      // Then check if we clicked an NPC
       const clickedNPC = engine.getClickedNPC(mouseX, mouseY, rect.width, rect.height);
       if (clickedNPC) {
         const npcName = clickedNPC.userData.name;
@@ -684,6 +714,19 @@ const Game: React.FC = () => {
         return;
       }
 
+      // Check if we right-clicked a dropped item
+      const clickedDroppedItem = engine.getClickedDroppedItem(mouseX, mouseY, rect.width, rect.height);
+      if (clickedDroppedItem) {
+        // Show item context menu
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          show: true,
+          npc: clickedDroppedItem // Store as npc for simplicity
+        });
+        return;
+      }
+
       // Check if we right-clicked a tree
       const clickedTree = engine.getClickedTree(mouseX, mouseY, rect.width, rect.height);
       if (clickedTree) {
@@ -723,12 +766,69 @@ const Game: React.FC = () => {
     }
   }, [contextMenu.show]);
 
+  // Prayer drain and special energy regeneration update loop
+  useEffect(() => {
+    const { updatePrayerDrain, updateSpecialAttackEnergy } = useGameStore.getState();
+    let lastTime = Date.now();
+
+    const updatePrayerLoop = () => {
+      const currentTime = Date.now();
+      const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+      lastTime = currentTime;
+
+      // Update prayer drain and special energy regeneration
+      updatePrayerDrain(deltaTime);
+      updateSpecialAttackEnergy(deltaTime);
+
+      // Continue the loop
+      requestAnimationFrame(updatePrayerLoop);
+    };
+
+    updatePrayerLoop();
+    
+    // No cleanup needed for requestAnimationFrame loop as it doesn't need to be cancelled
+  }, []);
+
   // Handle context menu actions
   const handleContextAction = (action: string, npc: any) => {
     setContextMenu({x: 0, y: 0, show: false});
     
     if (!gameEngineRef.current || useMinimalEngine) return;
     const engine = gameEngineRef.current as GameEngine;
+
+    // Handle dropped item interactions
+    if (npc.userData && npc.userData.type === 'dropped_item') {
+      const dropData = npc.userData.dropData;
+      
+      switch (action) {
+        case 'take':
+          // Move to item and pick it up
+          const itemPos = npc.position.clone();
+          engine.movePlayerTo(itemPos);
+          setTargetPosition(itemPos);
+          setIsMoving(true);
+          
+          setTimeout(() => {
+            const success = engine.pickupDroppedItem(npc);
+            if (success) {
+              // Show pickup message
+              const itemScreenPos = getScreenPosition(npc.position);
+              addFloatingText(`+${dropData.quantity} ${dropData.name}`, 'heal', itemScreenPos.x, itemScreenPos.y);
+            } else {
+              // Show inventory full message
+              const playerPos = engine.getPlayerPosition();
+              const playerScreenPos = getScreenPosition(playerPos);
+              addFloatingText('Inventory full!', 'miss', playerScreenPos.x, playerScreenPos.y);
+            }
+          }, 1000);
+          break;
+          
+        case 'examine':
+          alert(`${dropData.name}: ${dropData.itemId.replace(/_/g, ' ')}`);
+          break;
+      }
+      return;
+    }
 
     if (npc.userData.type === 'tree') {
       if (action === 'chop') {
@@ -1098,7 +1198,33 @@ const Game: React.FC = () => {
           minWidth: '120px',
           boxShadow: '2px 2px 4px rgba(0,0,0,0.5)'
         }}>
-          {contextMenu.npc?.userData.type === 'tree' ? (
+          {contextMenu.npc?.userData?.type === 'dropped_item' ? (
+            <>
+              <div 
+                onClick={() => handleContextAction('take', contextMenu.npc)}
+                style={{
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid #a69982'
+                }}
+                onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#d4c4a8'}
+                onMouseLeave={(e) => (e.target as HTMLElement).style.background = 'transparent'}
+              >
+                Take {contextMenu.npc.userData.dropData?.name}
+              </div>
+              <div 
+                onClick={() => handleContextAction('examine', contextMenu.npc)}
+                style={{
+                  padding: '4px 8px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => (e.target as HTMLElement).style.background = '#d4c4a8'}
+                onMouseLeave={(e) => (e.target as HTMLElement).style.background = 'transparent'}
+              >
+                Examine
+              </div>
+            </>
+          ) : contextMenu.npc?.userData.type === 'tree' ? (
             <>
               <div 
                 onClick={() => handleContextAction('chop', contextMenu.npc)}

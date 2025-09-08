@@ -14,6 +14,10 @@ export interface InventoryItem {
   attackBonus?: number;
   defenseBonus?: number;
   strengthBonus?: number;
+  magicBonus?: number;
+  rangedBonus?: number;
+  weaponType?: 'melee' | 'ranged' | 'magic';
+  ammoType?: 'arrow' | 'bolt';
   requirements?: ItemRequirements;
 }
 
@@ -25,6 +29,7 @@ export const ItemType = {
   RESOURCE: 'resource',
   RUNE: 'rune',
   POTION: 'potion',
+  AMMO: 'ammo',
   MISC: 'misc'
 } as const;
 
@@ -1234,5 +1239,664 @@ export const ITEM_DEFINITIONS: Record<string, Omit<InventoryItem, 'quantity'>> =
     equipSlot: EquipSlot.LEGS,
     defenseBonus: 30,
     requirements: { defense: 40 }
+  },
+
+  // Magic Runes
+  air_rune: {
+    id: 'air_rune',
+    name: 'Air rune',
+    icon: '💨',
+    description: 'An elemental rune used for air spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 4
+  },
+
+  water_rune: {
+    id: 'water_rune',
+    name: 'Water rune',
+    icon: '💧',
+    description: 'An elemental rune used for water spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 4
+  },
+
+  earth_rune: {
+    id: 'earth_rune',
+    name: 'Earth rune',
+    icon: '🌍',
+    description: 'An elemental rune used for earth spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 4
+  },
+
+  fire_rune: {
+    id: 'fire_rune',
+    name: 'Fire rune',
+    icon: '🔥',
+    description: 'An elemental rune used for fire spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 4
+  },
+
+  mind_rune: {
+    id: 'mind_rune',
+    name: 'Mind rune',
+    icon: '🧠',
+    description: 'A catalytic rune used for basic spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 3
+  },
+
+  chaos_rune: {
+    id: 'chaos_rune',
+    name: 'Chaos rune',
+    icon: '⚡',
+    description: 'A catalytic rune used for bolt spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 12
+  },
+
+  death_rune: {
+    id: 'death_rune',
+    name: 'Death rune',
+    icon: '☠️',
+    description: 'A catalytic rune used for blast spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 180
+  },
+
+  law_rune: {
+    id: 'law_rune',
+    name: 'Law rune',
+    icon: '⚖️',
+    description: 'A catalytic rune used for teleport spells.',
+    type: ItemType.RUNE,
+    stackable: true,
+    value: 300
+  },
+
+  // Magic Weapons
+  staff: {
+    id: 'staff',
+    name: 'Staff',
+    icon: '🪄',
+    description: 'A basic magical staff.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 200,
+    equipSlot: EquipSlot.WEAPON,
+    attackBonus: 2,
+    magicBonus: 3,
+    requirements: { magic: 1 }
+  },
+
+  battle_staff: {
+    id: 'battle_staff',
+    name: 'Battle staff',
+    icon: '🔮',
+    description: 'A staff designed for magical combat.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 7000,
+    equipSlot: EquipSlot.WEAPON,
+    attackBonus: 12,
+    magicBonus: 15,
+    requirements: { magic: 30, attack: 30 }
+  },
+
+  // Magic Armor
+  wizard_hat: {
+    id: 'wizard_hat',
+    name: 'Wizard hat',
+    icon: '🎩',
+    description: 'A hat worn by wizards.',
+    type: ItemType.ARMOR,
+    stackable: false,
+    value: 800,
+    equipSlot: EquipSlot.HELMET,
+    defenseBonus: 2,
+    magicBonus: 5,
+    requirements: { magic: 10 }
+  },
+
+  wizard_robe_top: {
+    id: 'wizard_robe_top',
+    name: 'Wizard robe (top)',
+    icon: '👘',
+    description: 'A robe worn by wizards.',
+    type: ItemType.ARMOR,
+    stackable: false,
+    value: 1200,
+    equipSlot: EquipSlot.BODY,
+    defenseBonus: 6,
+    magicBonus: 8,
+    requirements: { magic: 15 }
+  },
+
+  wizard_robe_bottom: {
+    id: 'wizard_robe_bottom',
+    name: 'Wizard robe (bottom)',
+    icon: '👗',
+    description: 'Wizard robe bottoms.',
+    type: ItemType.ARMOR,
+    stackable: false,
+    value: 900,
+    equipSlot: EquipSlot.LEGS,
+    defenseBonus: 4,
+    magicBonus: 6,
+    requirements: { magic: 12 }
+  },
+
+  // Ranged Weapons - Shortbows
+  shortbow: {
+    id: 'shortbow',
+    name: 'Shortbow',
+    icon: '🏹',
+    description: 'A short wooden bow.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 50,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 1 },
+    rangedBonus: 8
+  },
+
+  oak_shortbow: {
+    id: 'oak_shortbow',
+    name: 'Oak shortbow',
+    icon: '🏹',
+    description: 'A shortbow made from oak.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 120,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 5 },
+    rangedBonus: 12
+  },
+
+  willow_shortbow: {
+    id: 'willow_shortbow',
+    name: 'Willow shortbow',
+    icon: '🏹',
+    description: 'A shortbow made from willow.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 300,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 15 },
+    rangedBonus: 20
+  },
+
+  maple_shortbow: {
+    id: 'maple_shortbow',
+    name: 'Maple shortbow',
+    icon: '🏹',
+    description: 'A shortbow made from maple.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 750,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 25 },
+    rangedBonus: 29
+  },
+
+  yew_shortbow: {
+    id: 'yew_shortbow',
+    name: 'Yew shortbow',
+    icon: '🏹',
+    description: 'A shortbow made from yew.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 2000,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 35 },
+    rangedBonus: 47
+  },
+
+  magic_shortbow: {
+    id: 'magic_shortbow',
+    name: 'Magic shortbow',
+    icon: '🏹',
+    description: 'A shortbow made from magic wood.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 5000,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 45 },
+    rangedBonus: 69
+  },
+
+  // Ranged Weapons - Longbows
+  longbow: {
+    id: 'longbow',
+    name: 'Longbow',
+    icon: '🏹',
+    description: 'A long wooden bow.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 80,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 1 },
+    rangedBonus: 10
+  },
+
+  oak_longbow: {
+    id: 'oak_longbow',
+    name: 'Oak longbow',
+    icon: '🏹',
+    description: 'A longbow made from oak.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 180,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 10 },
+    rangedBonus: 15
+  },
+
+  willow_longbow: {
+    id: 'willow_longbow',
+    name: 'Willow longbow',
+    icon: '🏹',
+    description: 'A longbow made from willow.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 450,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 20 },
+    rangedBonus: 25
+  },
+
+  maple_longbow: {
+    id: 'maple_longbow',
+    name: 'Maple longbow',
+    icon: '🏹',
+    description: 'A longbow made from maple.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 1200,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 30 },
+    rangedBonus: 37
+  },
+
+  yew_longbow: {
+    id: 'yew_longbow',
+    name: 'Yew longbow',
+    icon: '🏹',
+    description: 'A longbow made from yew.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 3500,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 40 },
+    rangedBonus: 56
+  },
+
+  magic_longbow: {
+    id: 'magic_longbow',
+    name: 'Magic longbow',
+    icon: '🏹',
+    description: 'A longbow made from magic wood.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 8000,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 50 },
+    rangedBonus: 78
+  },
+
+  // Ranged Weapons - Crossbows
+  crossbow: {
+    id: 'crossbow',
+    name: 'Crossbow',
+    icon: '🏹',
+    description: 'A wooden crossbow.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 200,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 1 },
+    rangedBonus: 14
+  },
+
+  phoenix_crossbow: {
+    id: 'phoenix_crossbow',
+    name: 'Phoenix crossbow',
+    icon: '🏹',
+    description: 'A magical crossbow from the Shield of Arrav quest.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 500,
+    equipSlot: EquipSlot.WEAPON,
+    weaponType: 'ranged',
+    requirements: { ranged: 1 },
+    rangedBonus: 14
+  },
+
+  // Arrows
+  bronze_arrow: {
+    id: 'bronze_arrow',
+    name: 'Bronze arrow',
+    icon: '🏹',
+    description: 'An arrow with a bronze tip.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 2,
+    ammoType: 'arrow'
+  },
+
+  iron_arrow: {
+    id: 'iron_arrow',
+    name: 'Iron arrow',
+    icon: '🏹',
+    description: 'An arrow with an iron tip.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 4,
+    ammoType: 'arrow'
+  },
+
+  steel_arrow: {
+    id: 'steel_arrow',
+    name: 'Steel arrow',
+    icon: '🏹',
+    description: 'An arrow with a steel tip.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 8,
+    ammoType: 'arrow'
+  },
+
+  mithril_arrow: {
+    id: 'mithril_arrow',
+    name: 'Mithril arrow',
+    icon: '🏹',
+    description: 'An arrow with a mithril tip.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 15,
+    ammoType: 'arrow'
+  },
+
+  adamant_arrow: {
+    id: 'adamant_arrow',
+    name: 'Adamant arrow',
+    icon: '🏹',
+    description: 'An arrow with an adamant tip.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 30,
+    ammoType: 'arrow'
+  },
+
+  rune_arrow: {
+    id: 'rune_arrow',
+    name: 'Rune arrow',
+    icon: '🏹',
+    description: 'An arrow with a rune tip.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 80,
+    ammoType: 'arrow'
+  },
+
+  ice_arrow: {
+    id: 'ice_arrow',
+    name: 'Ice arrow',
+    icon: '❄️',
+    description: 'A magical ice arrow.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 60,
+    ammoType: 'arrow'
+  },
+
+  lit_arrow: {
+    id: 'lit_arrow',
+    name: 'Lit arrow',
+    icon: '🔥',
+    description: 'An arrow with a lit tip, used for special purposes.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 5,
+    ammoType: 'arrow'
+  },
+
+  // Crossbow Bolts
+  crossbow_bolt: {
+    id: 'crossbow_bolt',
+    name: 'Crossbow bolt',
+    icon: '🏹',
+    description: 'A standard crossbow bolt.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 12,
+    ammoType: 'bolt'
+  },
+
+  oyster_pearl_bolt: {
+    id: 'oyster_pearl_bolt',
+    name: 'Oyster pearl bolt',
+    icon: '🏹',
+    description: 'A crossbow bolt tipped with oyster pearl.',
+    type: ItemType.AMMO,
+    stackable: true,
+    value: 20,
+    ammoType: 'bolt'
+  },
+
+  // Prayer Items - Bones
+  bones: {
+    id: 'bones',
+    name: 'Bones',
+    icon: '🦴',
+    description: 'Bury for Prayer experience.',
+    type: ItemType.MISC,
+    stackable: true,
+    value: 1
+  },
+
+  bat_bones: {
+    id: 'bat_bones',
+    name: 'Bat bones',
+    icon: '🦴',
+    description: 'Bones from a bat. Bury for Prayer experience.',
+    type: ItemType.MISC,
+    stackable: true,
+    value: 2
+  },
+
+  big_bones: {
+    id: 'big_bones',
+    name: 'Big bones',
+    icon: '🦴',
+    description: 'Big bones from a large creature. Bury for Prayer experience.',
+    type: ItemType.MISC,
+    stackable: true,
+    value: 5
+  },
+
+  dragon_bones: {
+    id: 'dragon_bones',
+    name: 'Dragon bones',
+    icon: '🦴',
+    description: 'Bones from a mighty dragon. Bury for Prayer experience.',
+    type: ItemType.MISC,
+    stackable: true,
+    value: 30
+  },
+
+  // Monster Drops - Raw meat and materials
+  raw_rat_meat: {
+    id: 'raw_rat_meat',
+    name: 'Raw rat meat',
+    icon: '🥩',
+    description: 'Raw meat from a rat. Can be cooked.',
+    type: ItemType.RESOURCE,
+    stackable: true,
+    value: 1
+  },
+
+  raw_beef: {
+    id: 'raw_beef',
+    name: 'Raw beef',
+    icon: '🥩',
+    description: 'Raw beef from a cow. Can be cooked.',
+    type: ItemType.RESOURCE,
+    stackable: true,
+    value: 5
+  },
+
+  raw_chicken: {
+    id: 'raw_chicken',
+    name: 'Raw chicken',
+    icon: '🥩',
+    description: 'Raw chicken meat. Can be cooked.',
+    type: ItemType.RESOURCE,
+    stackable: true,
+    value: 3
+  },
+
+  cowhide: {
+    id: 'cowhide',
+    name: 'Cowhide',
+    icon: '🐮',
+    description: 'Hide from a cow. Used for crafting.',
+    type: ItemType.RESOURCE,
+    stackable: true,
+    value: 2
+  },
+
+  feather: {
+    id: 'feather',
+    name: 'Feather',
+    icon: '🪶',
+    description: 'A feather from a bird. Used for fletching arrows.',
+    type: ItemType.RESOURCE,
+    stackable: true,
+    value: 1
+  },
+
+  // Quest items and rare drops
+  loop_half_of_key: {
+    id: 'loop_half_of_key',
+    name: 'Loop half of key',
+    icon: '🗝️',
+    description: 'Half of a mysterious key.',
+    type: ItemType.MISC,
+    stackable: false,
+    value: 1000
+  },
+
+  tooth_half_of_key: {
+    id: 'tooth_half_of_key',
+    name: 'Tooth half of key',
+    icon: '🗝️',
+    description: 'Half of a mysterious key.',
+    type: ItemType.MISC,
+    stackable: false,
+    value: 1000
+  },
+
+  left_half_dragon_square_shield: {
+    id: 'left_half_dragon_square_shield',
+    name: 'Left half dragon square shield',
+    icon: '🛡️',
+    description: 'Left half of a dragon square shield.',
+    type: ItemType.MISC,
+    stackable: false,
+    value: 50000
+  },
+
+  right_half_dragon_square_shield: {
+    id: 'right_half_dragon_square_shield',
+    name: 'Right half dragon square shield',
+    icon: '🛡️',
+    description: 'Right half of a dragon square shield.',
+    type: ItemType.MISC,
+    stackable: false,
+    value: 50000
+  },
+
+  // Alcohol items (goblin drops)
+  beer: {
+    id: 'beer',
+    name: 'Beer',
+    icon: '🍺',
+    description: 'A frothy mug of beer.',
+    type: ItemType.FOOD,
+    stackable: true,
+    value: 2,
+    healAmount: 1
+  },
+
+  // Weapon drops (bronze tier)
+  bronze_spear: {
+    id: 'bronze_spear',
+    name: 'Bronze spear',
+    icon: '🔱',
+    description: 'A bronze spear.',
+    type: ItemType.WEAPON,
+    stackable: false,
+    value: 37,
+    equipSlot: EquipSlot.WEAPON,
+    attackBonus: 3,
+    strengthBonus: 2,
+    requirements: { attack: 1 }
+  },
+
+  bronze_square_shield: {
+    id: 'bronze_square_shield',
+    name: 'Bronze square shield',
+    icon: '🛡️',
+    description: 'A bronze square shield.',
+    type: ItemType.ARMOR,
+    stackable: false,
+    value: 56,
+    equipSlot: EquipSlot.SHIELD,
+    defenseBonus: 4,
+    requirements: { defense: 1 }
+  },
+
+  // Tools
+  hammer: {
+    id: 'hammer',
+    name: 'Hammer',
+    icon: '🔨',
+    description: 'A hammer used for smithing.',
+    type: ItemType.TOOL,
+    stackable: false,
+    value: 1
+  },
+
+  // Coins (special handling for variable quantities)
+  coins: {
+    id: 'coins',
+    name: 'Coins',
+    icon: '🪙',
+    description: 'Gold coins.',
+    type: ItemType.MISC,
+    stackable: true,
+    value: 1
   }
 };
