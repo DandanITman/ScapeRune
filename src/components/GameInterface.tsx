@@ -9,6 +9,10 @@ import SpellbookPanel from './SpellbookPanel';
 import RangedWeaponPanel from './RangedWeaponPanel';
 import { PrayerPanel } from './PrayerPanel';
 import { SpecialAttacksPanel } from './SpecialAttacksPanel';
+import { AgilityPanel } from './AgilityPanel';
+import { ThievingPanel } from './ThievingPanel';
+import { HerblorePanel } from './HerblorePanel';
+import { FiremakingPanel } from './FiremakingPanel';
 import { QuestJournal } from './ui/QuestJournal';
 import './GameInterface.css';
 
@@ -99,6 +103,30 @@ const GameInterface: React.FC = () => {
         >
           Quests
         </button>
+        <button 
+          className={`menu-button ${activePanel === 'agility' ? 'active' : ''}`}
+          onClick={() => togglePanel('agility')}
+        >
+          Agility
+        </button>
+        <button 
+          className={`menu-button ${activePanel === 'thieving' ? 'active' : ''}`}
+          onClick={() => togglePanel('thieving')}
+        >
+          Thieving
+        </button>
+        <button 
+          className={`menu-button ${activePanel === 'herblore' ? 'active' : ''}`}
+          onClick={() => togglePanel('herblore')}
+        >
+          Herblore
+        </button>
+        <button 
+          className={`menu-button ${activePanel === 'firemaking' ? 'active' : ''}`}
+          onClick={() => togglePanel('firemaking')}
+        >
+          Firemaking
+        </button>
         <button className="menu-button">Friends</button>
         <button className="menu-button">Options</button>
       </div>
@@ -159,6 +187,26 @@ const GameInterface: React.FC = () => {
       {activePanel === 'quests' && (
         <QuestJournal 
           isOpen={true}
+          onClose={() => setActivePanel(null)}
+        />
+      )}
+      {activePanel === 'agility' && (
+        <AgilityPanel 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
+      {activePanel === 'thieving' && (
+        <ThievingPanel 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
+      {activePanel === 'herblore' && (
+        <HerblorePanel 
+          onClose={() => setActivePanel(null)}
+        />
+      )}
+      {activePanel === 'firemaking' && (
+        <FiremakingPanel 
           onClose={() => setActivePanel(null)}
         />
       )}

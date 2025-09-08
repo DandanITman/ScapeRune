@@ -5,8 +5,21 @@ import { WoodcuttingSystem } from '../systems/WoodcuttingSystem';
 import { MiningSystem } from '../systems/MiningSystem';
 import { FishingSystem } from '../systems/FishingSystem';
 import { SmithingSystem } from '../systems/SmithingSystem';
+import { AgilitySystem } from '../systems/AgilitySystem';
+import { ThievingSystem } from '../systems/ThievingSystem';
+import { HerbloreSystem } from '../systems/HerbloreSystem';
+import { FiremakingSystem } from '../systems/FiremakingSystem';
 import { DropSystem } from '../systems/DropSystem';
+import { GraphicsSystem } from '../systems/GraphicsSystem';
+import { GraphicsEnhancementSystem } from '../systems/GraphicsEnhancementSystem';
+import { AudioSystem } from '../systems/AudioSystem';
+import { PerformanceSystem } from '../systems/PerformanceSystem';
+import { PerformanceOptimizationSystem } from '../systems/PerformanceOptimizationSystem';
+import { LoadingSystem } from '../systems/LoadingSystem';
 import type { DroppedItem } from '../systems/DropSystem';
+import type { GraphicsSettings } from '../systems/GraphicsSystem';
+import type { AudioSettings } from '../systems/AudioSystem';
+import type { PerformanceSettings } from '../systems/PerformanceSystem';
 import { ModelLoader } from '../utils/ModelLoader';
 import { useGameStore } from '../store/gameStore';
 import type { Equipment } from '../types/inventory';
@@ -33,8 +46,21 @@ export class GameEngine {
   private miningSystem = new MiningSystem();
   private fishingSystem = new FishingSystem();
   private smithingSystem = new SmithingSystem();
+  private agilitySystem!: AgilitySystem;
+  private thievingSystem = new ThievingSystem();
+  private herbloreSystem = new HerbloreSystem();
+  private firemakingSystem!: FiremakingSystem;
   private dropSystem = new DropSystem();
   private modelLoader = new ModelLoader();
+  
+  // Phase 10 systems
+  private graphicsSystem: GraphicsSystem | null = null;
+  private graphicsEnhancementSystem: GraphicsEnhancementSystem | null = null;
+  private audioSystem = new AudioSystem();
+  private performanceSystem: PerformanceSystem | null = null;
+  private performanceOptimizationSystem: PerformanceOptimizationSystem | null = null;
+  private loadingSystem = new LoadingSystem();
+  
   private playerCombatStyle: CombatStyle = 'controlled';
   
   // Combat state
@@ -135,6 +161,11 @@ export class GameEngine {
     this.updateCamera();
     console.log('Camera setup complete, final position:', this.camera.position);
 
+    // Initialize Phase 10 systems
+    console.log('Initializing Phase 10 systems...');
+    this.initializePhase10Systems();
+    console.log('Phase 10 systems initialized');
+
     // Handle window resize
     window.addEventListener('resize', this.handleResize.bind(this));
     
@@ -153,6 +184,69 @@ export class GameEngine {
       console.log('NPCs created successfully');
     } catch (error) {
       console.error('Error loading async components:', error);
+    }
+  }
+
+  private initializePhase10Systems(): void {
+    try {
+      // Initialize systems that require scene to be ready
+      this.agilitySystem = new AgilitySystem(this.scene);
+      this.firemakingSystem = new FiremakingSystem(this.scene);
+      console.log('Late-initialized skill systems created');
+      
+      // Initialize Graphics System
+      this.graphicsSystem = new GraphicsSystem(this.renderer, this.scene);
+      console.log('Graphics System initialized');
+
+      // Initialize Performance System
+      this.performanceSystem = new PerformanceSystem(this.scene, this.camera, this.renderer);
+      console.log('Performance System initialized');
+
+      // Initialize Audio System
+      this.audioSystem.initialize().then(() => {
+        console.log('Audio System initialized');
+      }).catch((error) => {
+        console.warn('Audio System initialization failed:', error);
+      });
+
+      // Initialize Loading System
+      this.loadingSystem.loadCriticalAssets().then(() => {
+        console.log('Critical assets loaded');
+      }).catch((error) => {
+        console.warn('Some critical assets failed to load:', error);
+      });
+
+      // Setup system configurations
+      this.configurePhase10Systems();
+      
+    } catch (error) {
+      console.error('Failed to initialize Phase 10 systems:', error);
+    }
+  }
+
+  private configurePhase10Systems(): void {
+    // Configure Graphics System
+    if (this.graphicsSystem) {
+      this.graphicsSystem.updateSettings({
+        quality: 'medium',
+        enableShadows: true,
+        smoothCamera: true,
+        enableVSync: false,
+        enableFog: true,
+        antialias: true
+      });
+    }
+
+    // Configure Performance System  
+    if (this.performanceSystem) {
+      this.performanceSystem.updateSettings({
+        enableLOD: true,
+        enableFrustumCulling: true,
+        enableOcclusionCulling: false,
+        maxDrawCalls: 1000,
+        targetFPS: 60,
+        enableObjectPooling: true
+      });
     }
   }
 
@@ -513,6 +607,27 @@ export class GameEngine {
     this.miningSystem.updateRocks(this.scene);
     
     // Note: Fishing spots don't need respawning as they're always available
+  }
+
+  private updatePhase10Systems(_deltaTime: number): void {
+    try {
+      // Update Performance System (runs first for performance metrics)
+      if (this.performanceSystem) {
+        this.performanceSystem.update();
+      }
+
+      // Update Graphics System
+      if (this.graphicsSystem) {
+        // Graphics system doesn't need continuous updates for now
+        // Updates are triggered by settings changes
+      }
+
+      // Audio system update is handled by user interactions
+      // No continuous update needed for audio system
+
+    } catch (error) {
+      console.warn('Error updating Phase 10 systems:', error);
+    }
   }
 
   public getGroundPosition(mouseX: number, mouseY: number, containerWidth: number, containerHeight: number): THREE.Vector3 | null {
@@ -927,6 +1042,9 @@ export class GameEngine {
       this.updateCamera();
       this.updateSkillResources();
 
+      // Update Phase 10 systems
+      this.updatePhase10Systems(deltaTime);
+
       // Render the scene
       this.renderer.render(this.scene, this.camera);
 
@@ -982,6 +1100,38 @@ export class GameEngine {
 
   public getFishingSystem(): FishingSystem {
     return this.fishingSystem;
+  }
+
+  public getAgilitySystem(): AgilitySystem {
+    return this.agilitySystem;
+  }
+
+  public getThievingSystem(): ThievingSystem {
+    return this.thievingSystem;
+  }
+
+  public getHerbloreSystem(): HerbloreSystem {
+    return this.herbloreSystem;
+  }
+
+  public getFiremakingSystem(): FiremakingSystem {
+    return this.firemakingSystem;
+  }
+
+  public getGraphicsEnhancementSystem(): GraphicsEnhancementSystem | null {
+    return this.graphicsEnhancementSystem;
+  }
+
+  public getPerformanceOptimizationSystem(): PerformanceOptimizationSystem | null {
+    return this.performanceOptimizationSystem;
+  }
+
+  public getAudioSystem(): AudioSystem {
+    return this.audioSystem;
+  }
+
+  public getLoadingSystem(): LoadingSystem {
+    return this.loadingSystem;
   }
 
   /**

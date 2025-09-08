@@ -61,6 +61,8 @@ export interface Player {
   stats: PlayerStats;
   experience: PlayerExperience;
   combatLevel: number;
+  level: number;
+  currentHits: number;
   hitpoints: number;
   maxHitpoints: number;
   fatigue: number;
@@ -68,6 +70,16 @@ export interface Player {
   specialAttackEnergy: SpecialAttackEnergy;
   inventory: InventorySlot[];
   equipment: Equipment;
+  tutorialCompleted?: boolean;
+  unlockedAreas?: string[];
+  completedQuests?: string[];
+  settings?: {
+    graphics?: 'low' | 'medium' | 'high';
+    sound?: boolean;
+    musicVolume?: number;
+    effectVolume?: number;
+    showTutorialHints?: boolean;
+  };
 }
 
 // Game state interface
@@ -175,6 +187,8 @@ const initialPlayer: Player = {
     thieving: 0,
   },
   combatLevel: 3,
+  level: 3,
+  currentHits: 10,
   hitpoints: 10,
   maxHitpoints: 10,
   fatigue: 0,
@@ -217,7 +231,17 @@ const initialPlayer: Player = {
           index === 23 ? { ...ITEM_DEFINITIONS.bronze_arrow, quantity: 100 } :
           index === 24 ? { ...ITEM_DEFINITIONS.bones, quantity: 5 } : null
   })),
-  equipment: {}
+  equipment: {},
+  tutorialCompleted: false,
+  unlockedAreas: [],
+  completedQuests: [],
+  settings: {
+    graphics: 'medium',
+    sound: true,
+    musicVolume: 50,
+    effectVolume: 50,
+    showTutorialHints: true
+  }
 };
 
 // Experience table for calculating levels
@@ -773,7 +797,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     );
   },
 
-  performSpecialAttack: (attackId: string, _targetId?: string) => {
+  performSpecialAttack: (attackId: string, targetId?: string) => {
     const canUse = get().canUseSpecialAttack(attackId);
     
     if (!canUse.canUse) {
@@ -794,7 +818,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     // For now, just consume energy and show message
-    // In a real game, this would perform combat calculations
+    // In a real game, this would perform combat calculations against targetId
     const energyUsed = attack.energyCost;
     
     set((state) => ({
@@ -809,7 +833,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     return {
       success: true,
-      message: `${attack.name} activated! ${attack.description}`,
+      message: `${attack.name} activated! ${attack.description}${targetId ? ` on ${targetId}` : ''}`,
       energyUsed
     };
   },
@@ -842,5 +866,69 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     const weaponSpecials = specialAttacksSystemInstance.getWeaponSpecials(weaponType);
     return weaponSpecials.map(attack => attack.id);
+  },
+
+  // Save/Load system methods
+  setPlayerExperience: (skill: keyof PlayerExperience, value: number) => {
+    set((state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        experience: {
+          ...state.player.experience,
+          [skill]: value
+        }
+      }
+    }));
+  },
+
+  setInventory: (inventory: InventorySlot[]) => {
+    set((state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        inventory
+      }
+    }));
+  },
+
+  setEquipment: (equipment: Equipment) => {
+    set((state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        equipment
+      }
+    }));
+  },
+
+  setQuestProgress: (questProgress: Record<string, PlayerQuestProgress>) => {
+    set((state) => ({
+      ...state,
+      questProgress
+    }));
+  },
+
+  setTutorialCompleted: (completed: boolean) => {
+    set((state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        tutorialCompleted: completed
+      }
+    }));
+  },
+
+  updateSettings: (settings: Partial<Player['settings']>) => {
+    set((state) => ({
+      ...state,
+      player: {
+        ...state.player,
+        settings: {
+          ...state.player.settings,
+          ...settings
+        }
+      }
+    }));
   }
 }));

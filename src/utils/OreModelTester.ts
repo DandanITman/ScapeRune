@@ -64,7 +64,7 @@ export class OreModelTester {
     console.log('  • Emissive glow effects for precious ores');
     console.log('  • Sparkle effects for gem rocks');
     console.log('  • Coal dust effects');
-    console.log('  • Automatic fallback to geometry if ores.glb missing');
+    console.log('  • Automatic fallback to geometry if resources/ores.glb missing');
     console.log('  • Async loading with caching');
     console.log('  • Proper respawn with custom models');
     
@@ -75,7 +75,7 @@ export class OreModelTester {
     console.log('  4. Observe special effects on precious ores');
     
     console.log('\n📁 Model Files:');
-    console.log('  • Place ores.glb in public/models/ for custom 3D models');
+    console.log('  • Place ores.glb in public/models/resources/ for custom 3D models');
     console.log('  • System falls back to procedural geometry if missing');
     console.log('  • Colors applied programmatically based on ore type');
   }

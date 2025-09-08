@@ -1,0 +1,393 @@
+.herblore-panel {
+  width: 600px;
+  height: 500px;
+  background: linear-gradient(135deg, #4a5d2a 0%, #3a4d1a 100%);
+  border: 2px solid #6a7d4a;
+  border-radius: 12px;
+  color: #f5f8e8;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.herblore-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: rgba(74, 93, 42, 0.8);
+  border-bottom: 2px solid #6a7d4a;
+  border-radius: 10px 10px 0 0;
+}
+
+.herblore-header h2 {
+  margin: 0;
+  color: #c8d8a8;
+  font-size: 1.4em;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.close-button {
+  background: #d32f2f;
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background: #f44336;
+  transform: scale(1.1);
+}
+
+.herblore-tabs {
+  display: flex;
+  background: rgba(58, 77, 26, 0.9);
+  border-bottom: 1px solid #6a7d4a;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  color: #d8e8b8;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+  background: rgba(106, 125, 74, 0.3);
+  color: #e8f8d8;
+}
+
+.tab.active {
+  background: rgba(106, 125, 74, 0.5);
+  color: #c8d8a8;
+  border-bottom-color: #8ba06b;
+}
+
+.herblore-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.herbs-tab,
+.potions-tab {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.herbs-list,
+.potions-list {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  border-right: 1px solid #6a7d4a;
+}
+
+.herbs-list h3,
+.potions-list h3 {
+  margin: 0 0 15px 0;
+  color: #c8d8a8;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.herb-item,
+.potion-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: rgba(74, 93, 42, 0.4);
+  border: 1px solid #6a7d4a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.herb-item:hover,
+.potion-item:hover {
+  background: rgba(106, 125, 74, 0.6);
+  border-color: #8ba06b;
+  transform: translateX(2px);
+}
+
+.herb-item.selected,
+.potion-item.selected {
+  background: rgba(106, 125, 74, 0.8);
+  border-color: #abc08b;
+  box-shadow: 0 2px 8px rgba(171, 192, 139, 0.3);
+}
+
+.herb-item.locked,
+.potion-item.locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.herb-item.locked:hover,
+.potion-item.locked:hover {
+  background: rgba(74, 93, 42, 0.4);
+  border-color: #6a7d4a;
+  transform: none;
+}
+
+.herb-icon,
+.potion-icon {
+  font-size: 24px;
+  margin-right: 12px;
+  min-width: 30px;
+  text-align: center;
+}
+
+.herb-info,
+.potion-info {
+  flex: 1;
+}
+
+.herb-name,
+.potion-name {
+  font-weight: 600;
+  color: #f5f8e8;
+  font-size: 0.95em;
+}
+
+.herb-level,
+.herb-xp,
+.potion-level,
+.potion-xp {
+  font-size: 0.85em;
+  color: #d8e8b8;
+  margin-top: 2px;
+}
+
+.herb-status,
+.potion-status {
+  font-size: 18px;
+  margin-left: 10px;
+}
+
+.herb-details,
+.potion-details {
+  flex: 1.2;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.herb-details h3,
+.potion-details h3 {
+  margin: 0 0 15px 0;
+  color: #c8d8a8;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.herb-stats,
+.potion-stats {
+  background: rgba(58, 77, 26, 0.6);
+  border: 1px solid #6a7d4a;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(106, 125, 74, 0.3);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-row span:first-child {
+  color: #d8e8b8;
+  font-weight: 500;
+}
+
+.stat-row span:last-child {
+  color: #f5f8e8;
+  font-weight: 600;
+}
+
+.herb-description,
+.potion-description {
+  background: rgba(58, 77, 26, 0.4);
+  border: 1px solid #6a7d4a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+  color: #e8f8d8;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.potion-recipe {
+  background: rgba(58, 77, 26, 0.4);
+  border: 1px solid #6a7d4a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.potion-recipe h4 {
+  margin: 0 0 10px 0;
+  color: #c8d8a8;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.recipe-step {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  color: #e8f8d8;
+  font-size: 0.9em;
+}
+
+.step-number {
+  min-width: 20px;
+  color: #d8e8b8;
+  font-weight: 600;
+}
+
+.step-text {
+  color: #f5f8e8;
+}
+
+.recipe-ingredients {
+  background: rgba(58, 77, 26, 0.4);
+  border: 1px solid #6a7d4a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.recipe-ingredients h4 {
+  margin: 0 0 10px 0;
+  color: #c8d8a8;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.ingredient-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  color: #e8f8d8;
+  font-size: 0.9em;
+}
+
+.ingredient-icon {
+  font-size: 16px;
+  margin-right: 8px;
+  min-width: 20px;
+}
+
+.ingredient-name {
+  color: #f5f8e8;
+}
+
+.clean-herb-btn,
+.make-potion-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #689f38 0%, #4e7930 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(104, 159, 56, 0.3);
+}
+
+.clean-herb-btn:hover,
+.make-potion-btn:hover {
+  background: linear-gradient(135deg, #7cb342 0%, #689f38 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(104, 159, 56, 0.4);
+}
+
+.requirement-warning {
+  background: rgba(211, 47, 47, 0.2);
+  border: 1px solid #d32f2f;
+  border-radius: 8px;
+  padding: 12px;
+  color: #ffcdd2;
+  font-size: 0.9em;
+  text-align: center;
+  font-weight: 500;
+}
+
+.herblore-footer {
+  padding: 15px 20px;
+  background: rgba(58, 77, 26, 0.8);
+  border-top: 1px solid #6a7d4a;
+  border-radius: 0 0 10px 10px;
+}
+
+.current-level {
+  color: #c8d8a8;
+  font-weight: 600;
+  font-size: 1em;
+  margin-bottom: 5px;
+}
+
+.herblore-tip {
+  color: #d8e8b8;
+  font-size: 0.85em;
+  font-style: italic;
+}
+
+/* Scrollbar styling */
+.herbs-list::-webkit-scrollbar,
+.potions-list::-webkit-scrollbar,
+.herb-details::-webkit-scrollbar,
+.potion-details::-webkit-scrollbar {
+  width: 8px;
+}
+
+.herbs-list::-webkit-scrollbar-track,
+.potions-list::-webkit-scrollbar-track,
+.herb-details::-webkit-scrollbar-track,
+.potion-details::-webkit-scrollbar-track {
+  background: rgba(58, 77, 26, 0.3);
+  border-radius: 4px;
+}
+
+.herbs-list::-webkit-scrollbar-thumb,
+.potions-list::-webkit-scrollbar-thumb,
+.herb-details::-webkit-scrollbar-thumb,
+.potion-details::-webkit-scrollbar-thumb {
+  background: rgba(106, 125, 74, 0.6);
+  border-radius: 4px;
+}
+
+.herbs-list::-webkit-scrollbar-thumb:hover,
+.potions-list::-webkit-scrollbar-thumb:hover,
+.herb-details::-webkit-scrollbar-thumb:hover,
+.potion-details::-webkit-scrollbar-thumb:hover {
+  background: rgba(106, 125, 74, 0.8);
+}

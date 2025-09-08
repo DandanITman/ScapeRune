@@ -1,0 +1,225 @@
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #2c3e50, #3498db);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  font-family: 'Georgia', serif;
+  color: white;
+  text-align: center;
+}
+
+.loading-content {
+  max-width: 400px;
+  width: 90%;
+}
+
+.loading-logo {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(45deg, #f1c40f, #e67e22);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.loading-subtitle {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+  font-style: italic;
+}
+
+.loading-progress {
+  margin-bottom: 2rem;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #27ae60, #2ecc71);
+  transition: width 0.3s ease;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-text {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.progress-percentage {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.progress-stage {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 0.5rem;
+}
+
+.progress-item {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.loading-tips {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1rem;
+}
+
+.loading-tip {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  line-height: 1.4;
+  animation: fadeIn 3s infinite;
+}
+
+@keyframes fadeIn {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.loading-version {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+.loading-credits {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  font-size: 0.8rem;
+  opacity: 0.5;
+  text-align: left;
+}
+
+/* Animations */
+.loading-screen.fade-out {
+  animation: fadeOut 1s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.loading-logo {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Error state */
+.loading-error {
+  background: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+.loading-error .loading-logo {
+  background: linear-gradient(45deg, #f39c12, #d35400);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.loading-error .progress-bar {
+  background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+/* Success state */
+.loading-complete {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.loading-complete .loading-logo {
+  animation: bounce 1s ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .loading-logo {
+    font-size: 2rem;
+  }
+  
+  .loading-subtitle {
+    font-size: 1rem;
+  }
+  
+  .progress-percentage {
+    font-size: 1.5rem;
+  }
+  
+  .loading-content {
+    width: 95%;
+  }
+  
+  .loading-version,
+  .loading-credits {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    text-align: center;
+    margin-top: 1rem;
+  }
+}

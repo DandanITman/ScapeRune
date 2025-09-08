@@ -129,10 +129,10 @@ export class OreModelLoader {
     }
 
     try {
-      console.log('Loading base ore model: ores.glb');
+      console.log('Loading base ore model: ores.glb from resources folder');
       const gltf = await new Promise<any>((resolve, reject) => {
         this.loader.load(
-          '/models/ores.glb',
+          '/models/resources/ores.glb',
           (gltf) => resolve(gltf),
           undefined,
           (error) => reject(error)
@@ -143,7 +143,7 @@ export class OreModelLoader {
       console.log('Base ore model loaded successfully');
       return this.baseModel;
     } catch (error) {
-      console.warn('Failed to load ores.glb, using fallback geometry');
+      console.warn('Failed to load ores.glb from resources folder, using fallback geometry:', error);
       return this.createFallbackModel();
     }
   }

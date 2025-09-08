@@ -1,8 +1,8 @@
-# Ore Models for ScapeRune
+# Models for ScapeRune
 
-## ores.glb
+## resources/ores.glb
 
-This file should contain a base 3D model for ore rocks that will be procedurally colored by the OreModelLoader system.
+This file contains a base 3D model for ore rocks that will be procedurally colored by the OreModelLoader system.
 
 ### Model Requirements:
 - **Format**: GLTF 2.0 Binary (.glb)
@@ -25,7 +25,7 @@ This file should contain a base 3D model for ore rocks that will be procedurally
 - Test that materials accept color changes properly
 
 ### Backup Models:
-If ores.glb is not available, the system will automatically generate fallback geometry using Three.js primitives with appropriate colors.
+If resources/ores.glb is not available, the system will automatically generate fallback geometry using Three.js primitives with appropriate colors.
 
 ### Colors Applied by System:
 - **Clay**: Brown (#8B4513)
@@ -40,4 +40,4 @@ If ores.glb is not available, the system will automatically generate fallback ge
 - **Adamant**: Forest green (#228B22) with green glow  
 - **Runite**: Turquoise (#40E0D0) with cyan glow
 
-Place the actual ores.glb file in this directory to enable custom ore models throughout the game.
+The ores.glb file is located in the resources subdirectory to enable custom ore models throughout the game.

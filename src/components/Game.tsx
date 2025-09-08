@@ -5,11 +5,13 @@ import { WorldSystem } from '../systems/WorldSystem';
 import { NPCSystem } from '../systems/NPCSystem';
 import { BankingSystem } from '../systems/BankingSystem';
 import { ShopSystem } from '../systems/ShopSystem';
+import { TutorialIslandSystem } from '../systems/TutorialIslandSystem';
 import { useGameStore } from '../store/gameStore';
 import GameInterface from './GameInterface';
 import CombatUI from './CombatUI';
 import { BankPanel } from './BankPanel';
 import { ShopPanel } from './ShopPanel';
+import { TutorialPanel } from './TutorialPanel';
 import type { FloatingText, HealthBar } from './CombatUI';
 import type { ShopItem } from '../systems/NPCSystem';
 import * as THREE from 'three';
@@ -21,10 +23,12 @@ const Game: React.FC = () => {
   const npcSystemRef = useRef<NPCSystem | null>(null);
   const bankingSystemRef = useRef<BankingSystem | null>(null);
   const shopSystemRef = useRef<ShopSystem | null>(null);
+  const tutorialSystemRef = useRef<TutorialIslandSystem | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [loadingStep, setLoadingStep] = useState<string>('Initializing...');
+  const [showTutorial, setShowTutorial] = useState(false); // Tutorial disabled by default for Phase 8 testing
   
   const { setGameLoaded, addExperience, updateCurrentHits } = useGameStore();
   
@@ -349,12 +353,20 @@ const Game: React.FC = () => {
           // Initialize shop system  
           shopSystemRef.current = new ShopSystem();
           
-          // Load Lumbridge town
-          worldSystemRef.current.loadTown('lumbridge');
-          worldSystemRef.current.createTownPaths('lumbridge');
-          
-          // Spawn town NPCs
-          npcSystemRef.current.spawnTownNPCs('lumbridge');
+          // Load main world for Phase 8 testing, tutorial system available but not default
+          if (showTutorial) {
+            setLoadingStep('Loading Tutorial Island...');
+            tutorialSystemRef.current = new TutorialIslandSystem(scene);
+            console.log('Tutorial Island loaded successfully');
+          } else {
+            // Load Lumbridge town
+            worldSystemRef.current.loadTown('lumbridge');
+            worldSystemRef.current.createTownPaths('lumbridge');
+            
+            // Spawn town NPCs
+            npcSystemRef.current.spawnTownNPCs('lumbridge');
+            console.log('Main world loaded successfully');
+          }
           
           console.log('World systems loaded successfully');
         }
@@ -427,6 +439,24 @@ const Game: React.FC = () => {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [cameraRotationSpeed]);
+
+  // Tutorial progression checking
+  useEffect(() => {
+    if (!tutorialSystemRef.current || !gameEngineRef.current || useMinimalEngine) return;
+    
+    const engine = gameEngineRef.current as GameEngine;
+    const checkProgression = () => {
+      const playerPos = engine.getPlayerPosition();
+      tutorialSystemRef.current?.checkStepProgression({
+        x: playerPos.x,
+        y: playerPos.y,
+        z: playerPos.z
+      });
+    };
+    
+    const interval = setInterval(checkProgression, 1000);
+    return () => clearInterval(interval);
+  }, [useMinimalEngine]);
 
   // Handle mouse clicks (movement, NPC interaction, and context menus)
   useEffect(() => {
@@ -796,6 +826,21 @@ const Game: React.FC = () => {
     if (!gameEngineRef.current || useMinimalEngine) return;
     const engine = gameEngineRef.current as GameEngine;
 
+    // Handle tutorial island interactions
+    if (tutorialSystemRef.current && npc.userData) {
+      if (npc.userData.type === 'npc' && action === 'talk') {
+        tutorialSystemRef.current.handleNPCInteraction(npc.userData.id);
+        return;
+      }
+      
+      if (npc.userData.type === 'interactable') {
+        if (tutorialSystemRef.current.canInteractWith(npc.userData.id)) {
+          tutorialSystemRef.current.handleInteraction(npc.userData.id);
+          return;
+        }
+      }
+    }
+
     // Handle dropped item interactions
     if (npc.userData && npc.userData.type === 'dropped_item') {
       const dropData = npc.userData.dropData;
@@ -1126,6 +1171,8 @@ const Game: React.FC = () => {
   // Force loaded state for testing
   const forceLoaded = true;
 
+  console.log('Game component render:', { hasError, isLoaded, forceLoaded, loadingStep });
+
   if (hasError) {
     return (
       <div className="game-error">
@@ -1315,6 +1362,20 @@ const Game: React.FC = () => {
           <p>Left-click: Move/Attack</p>
           <p>Right-click: Context menu</p>
           <p>RuneScape Classic!</p>
+          <button 
+            onClick={() => setShowTutorial(!showTutorial)}
+            style={{
+              marginTop: '10px',
+              padding: '5px 10px',
+              background: showTutorial ? '#e74c3c' : '#27ae60',
+              color: 'white',
+              border: 'none',
+              borderRadius: '3px',
+              cursor: 'pointer'
+            }}
+          >
+            {showTutorial ? 'Exit Tutorial' : 'Start Tutorial'}
+          </button>
         </div>
       )}
       
@@ -1345,6 +1406,13 @@ const Game: React.FC = () => {
           shopItems={currentShopItems}
           shopName={currentShopName}
           onClose={() => setShowShopPanel(false)}
+        />
+      )}
+      
+      {/* Tutorial Panel */}
+      {showTutorial && tutorialSystemRef.current && (
+        <TutorialPanel 
+          tutorialSystem={tutorialSystemRef.current}
         />
       )}
     </div>
